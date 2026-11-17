@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#007934">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Evaluación operacional – Pilotos UAS EPM</title>
+<style>
+:root{
+  --verde:#007934; --verde-osc:#005a27; --lima:#7AD400; --tinta:#17321F; --gris:#5b6b60; --linea:#d5e2d6;
+  --neblina:#eef5ec; --papel:#fff; --rojo:#b3261e; --rojo-s:#fbeceb; --verde-s:#e3f3e8; --ambar:#c77700; --ambar-s:#fff3dc;
+  font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--neblina);color:var(--tinta)}
+body{font-size:16px;line-height:1.45;padding-bottom:env(safe-area-inset-bottom,0)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--lima);outline-offset:2px}
+#top{background:var(--papel);border-bottom:1px solid var(--linea);display:flex;align-items:center;gap:10px;padding:8px 14px;padding-top:calc(8px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:10}
+#top img{height:28px}
+#top .tit{flex:1;line-height:1.15}
+#top .tit b{display:block;font-size:15px}
+#top .tit span{font-size:12px;color:var(--gris)}
+#top .ver{font-size:11px;color:var(--gris)}
+main{max-width:860px;margin:0 auto;padding:12px 12px 120px}
+.hoja{background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:21px;margin:2px 0 8px;color:var(--verde-osc)}
+h2{font-size:17px;margin:0 0 8px;color:var(--verde-osc)}
+.sub{color:var(--gris);font-size:14px}
+.btn{border:1.5px solid var(--verde);background:var(--papel);color:var(--verde-osc);border-radius:10px;padding:10px 16px;font-weight:bold;min-height:44px}
+.btn.pri{background:var(--verde);color:#fff}
+.btn.peligro{border-color:var(--rojo);color:var(--rojo)}
+.btn:disabled{opacity:.45}
+.btn.chico{min-height:36px;padding:6px 12px;font-size:14px}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.campo{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:14px;color:var(--gris)}
+.campo input,.campo select,.campo textarea{border:1.5px solid var(--linea);border-radius:9px;padding:10px;background:#fff;color:var(--tinta);font-size:16px}
+textarea{width:100%;resize:vertical}
+.fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.fila{grid-template-columns:1fr}}
+.msg{border-radius:9px;padding:10px 12px;margin:8px 0;font-size:14px}
+.msg.ok{background:var(--verde-s);color:var(--verde-osc)} .msg.err{background:var(--rojo-s);color:var(--rojo)} .msg.info{background:var(--ambar-s);color:#6b4500}
+.lista .ev{display:flex;gap:10px;align-items:center;border:1px solid var(--linea);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;width:100%;text-align:left}
+.ev .n{flex:1} .ev .n b{display:block} .ev .n span{font-size:13px;color:var(--gris)}
+.tag{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:bold;white-space:nowrap}
+.tag.ok{background:var(--verde-s);color:var(--verde)} .tag.mal{background:var(--rojo-s);color:var(--rojo)} .tag.bor{background:var(--ambar-s);color:var(--ambar)} .tag.crit{background:var(--rojo-s);color:var(--rojo);font-size:11px;padding:1px 8px}
+.pils{display:flex;flex-wrap:wrap;gap:6px}
+.pil{border:1.5px solid var(--linea);background:#fff;border-radius:20px;padding:8px 14px;font-weight:bold}
+.pil.on{background:var(--verde);border-color:var(--verde);color:#fff}
+.sugerido{border:1.5px solid var(--linea);border-radius:10px;padding:8px 12px;background:#fff;text-align:left;width:100%;margin-bottom:6px}
+.sugerido b{display:block}
+.sugerido span{font-size:13px;color:var(--gris)}
+/* evaluación */
+#barra{position:sticky;top:calc(48px + env(safe-area-inset-top,0px));z-index:9;background:var(--papel);border-bottom:1px solid var(--linea);padding:8px 14px;display:flex;gap:10px;align-items:center;font-size:14px}
+#barra .prog{flex:1;height:8px;background:var(--linea);border-radius:4px;overflow:hidden}
+#barra .prog i{display:block;height:100%;background:var(--verde)}
+.sec{background:var(--papel);border:1px solid var(--linea);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.sec>button.cab{width:100%;display:flex;gap:8px;align-items:center;border:0;background:none;padding:12px 14px;text-align:left;font-weight:bold;color:var(--verde-osc)}
+.sec>button.cab .cnt{margin-left:auto;font-size:13px;color:var(--gris);font-weight:normal}
+.sec .cuerpo{display:none;border-top:1px solid var(--linea)}
+.sec.abierta .cuerpo{display:block}
+.it{padding:12px 14px;border-bottom:1px solid var(--linea)}
+.it:last-child{border-bottom:0}
+.it .tx{margin-bottom:8px}
+.it .tx small{color:var(--gris);margin-right:6px;font-weight:bold}
+.est{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.est button{border:1.5px solid var(--linea);background:#fff;border-radius:9px;padding:9px 4px;font-weight:bold;font-size:14px;min-height:44px}
+.est .c.on{background:var(--verde);border-color:var(--verde);color:#fff}
+.est .n.on{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.est .na.on{background:var(--gris);border-color:var(--gris);color:#fff}
+.extra{display:flex;gap:8px;margin-top:8px;align-items:flex-start;flex-wrap:wrap}
+.extra textarea{flex:1;min-width:200px;border:1.5px solid var(--linea);border-radius:9px;padding:8px;font-size:15px;min-height:42px}
+.fotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.fotos .f{position:relative}
+.fotos img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--linea);display:block}
+.fotos .x{position:absolute;top:-8px;right:-8px;width:32px;height:32px;border-radius:50%;border:0;background:var(--rojo);color:#fff;font-weight:bold;font-size:17px;line-height:32px;padding:0}
+.camara{border:1.5px dashed var(--verde);background:#fff;color:var(--verde-osc);border-radius:9px;padding:8px 12px;font-weight:bold;min-height:42px}
+.res{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.res .pts{font-size:52px;font-weight:bold;line-height:1;color:var(--verde-osc)} .res .pts.no{color:var(--rojo)}
+.res .ver{font-size:20px;font-weight:bold}
+#visor{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:50;display:none;align-items:center;justify-content:center}
+#visor.on{display:flex} #visor img{max-width:100%;max-height:100%}
+#modal{position:fixed;inset:0;background:rgba(23,50,31,.5);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
+#modal.on{display:flex}
+#modal .caja{background:#fff;border-radius:14px;padding:18px;max-width:520px;width:100%}
+/* informe */
+.inf table{width:100%;border-collapse:collapse;font-size:14px}
+.inf td,.inf th{border:1px solid var(--linea);padding:6px 8px;vertical-align:top;text-align:left}
+.inf th{background:var(--neblina)}
+.inf .ok{color:var(--verde);font-weight:bold} .inf .mal{color:var(--rojo);font-weight:bold} .inf .na{color:var(--gris)}
+.inf .fotos img{width:150px;height:110px}
+@media print{
+  #top,#barra,.no-print{display:none!important}
+  body{background:#fff} main{max-width:none;padding:0}
+  .hoja{border:0;padding:0 0 10px}
+  .inf .fotos img{width:170px;height:125px}
+  .salto{page-break-before:always}
+}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;position:sticky;top:calc(92px + env(safe-area-inset-top,0px));z-index:8}
+.tabs button{border:1.5px solid var(--verde);background:#fff;color:var(--verde-osc);border-radius:10px;padding:10px 6px;font-weight:bold;min-height:48px;line-height:1.2}
+.tabs button.on{background:var(--verde);color:#fff}
+.tabs button small{display:block;font-weight:normal;font-size:12px}
+#fase{font-size:13px;color:var(--verde-osc);font-weight:bold}
+#barra .t{font-variant-numeric:tabular-nums;font-weight:bold;font-size:18px}
+#barra .t.aviso{color:var(--ambar)} #barra .t.fin{color:var(--rojo)}
+.dato{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px;color:var(--gris)}
+.dato input{width:90px;border:1.5px solid var(--linea);border-radius:9px;padding:8px;font-size:16px}
+.tarj{border:1.5px solid var(--ambar);background:var(--ambar-s);border-radius:10px;padding:10px 12px;margin:10px 14px}
+.tarj b{color:#6b4500}
+.amb{display:flex;gap:8px;align-items:center;font-size:14px;margin:0 14px 10px}
+#mostrar{position:fixed;inset:0;z-index:60;background:var(--verde-osc);color:#fff;display:none;flex-direction:column;justify-content:center;padding:28px;text-align:center}
+#mostrar.on{display:flex}
+#mostrar .q{font-size:30px;font-weight:bold;line-height:1.3}
+#mostrar .p{font-size:16px;opacity:.85;margin-bottom:18px}
+#mostrar .c{font-size:14px;opacity:.7;margin-top:30px}
+.solo-print{display:none} @media print{.solo-print{display:inline}}
+[data-elige]{max-width:100%;min-width:0;text-overflow:ellipsis}
+.inf .secs table{margin-bottom:6px}
+@page{size:letter;margin:9mm 10mm}
+@media print{
+  .inf{font-size:10px;line-height:1.22}
+  .inf h1{font-size:14px;margin:0 0 4px}
+  .inf h2{font-size:11px;margin:5px 0 2px!important}
+  .inf table{font-size:10px}
+  .inf td,.inf th{padding:1px 4px}
+  .inf .tarj{padding:3px 6px;margin:4px 0!important;font-size:10px;line-height:1.22}
+  .inf .res{margin:4px 0 2px!important;gap:8px} .inf .res .pts{font-size:26px} .inf .res .ver{font-size:14px}
+  .inf .msg{padding:3px 6px;margin:3px 0;font-size:10px}
+  .inf .sub{font-size:9.5px}
+  .inf .tag.crit{font-size:8px;padding:0 4px}
+  .inf .secs{column-count:2;column-gap:8px}
+  .inf .secs table{margin-bottom:4px}
+  .inf .secs tr{break-inside:avoid}
+  .inf .secs th:first-child{width:22px!important} .inf .secs th:last-child{width:46px!important}
+  .inf .secs td:first-child br{display:none} .inf .secs td .tag.crit{margin-left:1px}
+  .inf .secs .fotos img{width:44px!important;height:34px!important}
+  .inf .secs h2{break-after:avoid}
+  .inf .fotos{gap:3px;margin-top:2px}
+  .inf .fotos img{width:64px!important;height:48px!important}
+  .inf .firmas td{height:34px!important}
+  .inf p{margin:2px 0}
+  .inf .ord{display:inline} .inf .ord+.ord:before{content:" · "}
+}
+.ord{display:block}
+.nota-sec{font-size:13px;color:var(--gris);padding:10px 14px 0}
+</style>
+</head>
+<body>
+<div id="top"><img alt="EPM" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAACDCAYAAAApiRZJAAA9AUlEQVR42u2deZycVZX3v+fe56mqXpKQBHgnouOICJJgCHRARxg7KOIyOo461Y6ozLgFdfRFRMiCWl0qWVjEcQMiox+dGZ3pUmfGwR0MeXUchDRhS0AExDWCQpJOL1X1PPee94/nqU5n7epOb9Hn9/mUku6u7lvnued3zzn3LJAhQ4YMY4NQ6gya/unkZ+XQvzBDhgwZmkWxaKlU3PB/n/jIn4O8Akcr6HwEReVJjAxRr3+dtqN+THlTvN97MyLKkCHDuNBTtHRVHC89IU/HnFV43k1g88TuN3huxogHwKtBOJvQHk/sHIZP0LvrCr79UI0ilgouI6IMGTKMHaXOgPKmmMuWvIzW3GdwOofYXU0udz3l25484HtWnjEf/NsIzTuw0kLVv5F1m28e/l0ZEWXIkGHMJPSBjguwwReI/ad4cOASKtvqwz+zvCPc6z0beqM97hyWE88sY7gcr+/iijuuo0RAmTgTboYMGZpzxwA+0HEB3c9VVp/xkuHvveeEPDd0hCzvCCl1BsMvRQBBh4PaicGzeukr+cjzlJVL37XX786QIUOGg6KYEsX7Fr+E7ucqly152QjrZzRvSkb8jFBamAPg0tNfwQfPVFZ2nDdsLWWuWYYMGQ4IReguCdxUwJn7idw3WX/nO7mhI+Q3vY4ynlWnngXmLGAIFQtqcPIYrfIdyr2/H0FImrh4C3OUt9VZ1dGNsoJ8+1zKm2oZEWXIkOHAaMSFVnZcjshK1myeTVfRUKl4lncEbOiNWN3xceYWLmJXPbV/BEIDsUIt/hp53gS9VbpRBE0so87EyooGHsK5L7F+y+Us7whMJvEMGTLsh/Imx/KOEGMuBLkCQVn4+B7rBkCln9jHxPF7qJtnELmTGai9hSi+hXmF11DjSsp4ujDDdlbyu2PUX4WYdwDKht4oI6IMGTLsYw1hAGWunILqXLy/bpic9vbfDCIBYn7F+h8/ytreB1i35fPUolexs9qHyAVc87yWNG9I9vodOfevCLNYcdoLADIiypAhw97Y3pG4T8KbUN/P+t5de1k0+0JJru4bQeyr7xnEaRXVFvoi2e+nSxi6796FcjvGvDojogwZMhwK8xHzpcRKOkRtmdfkhqwtDCh1tLDytFcwK38s8AO2E1Eqmb1IbHuHTWJG8mNELECQyTpDhgwHhZAkLW7vP8DFlhhiD0auZeXSNUg8SE2OZnZhAdX4V0TR/2XDPRHF4w+cLySax8lRGRFlyJDhsJkK4QlUd2LMXwCOgaibxwY/yT9texKQgxW6jkTmmmXIkOGgHIP6JBFxQfsB4kPqCQSM+wjrel9A7N/PrNBSd7v5p21PpjEjPejvV6lheSIjogwZMhwC/veonA+wb5Hq3j9mErft2PAz7KptYXbuSlYsOZUNvdFwdvZILOhNbtGUM3HqMiLKkCEDByEKQL+AyCxWPmdu8s+DJECrJFbPJbcNgb+UwFjEfDwNUjdsqz12VhnPio7ZiD4Xr1/LiChDhgz7o4xHEf7M3I/wOBK+E4DuzgMFnfe4Xss7QtZuuYWdta8zt2UZtZveRKXi6BzxvkZmNfpGkB1cdecPMiLKkCHDgdHdabmwN8L5fwRZiSJsO1b34gxVixUBn3xtwVBScR/K+9hdrwIbuOw5T2XTpjhNkpRhwrLmMpQNgLC8I8yIKEOGDAewijbFFIuWp/RdjzWPs6rjeioVxw0ddth1E/k8u6pFHD9I3rMt6UF0Re/D1KpnYf0FhBKmVpZSWhhS3hQzT1ajOpdC20cB2NCb9SXKkCHDQdDoF3TZ6UkbkNWnv2TYojl0wbzs9+9i2gZk9Wmv5INnKqvOeBEw3AYkQ4YMGQ6ORkb15R2vT8ho6cv2fG9hLmmGdoAQT7FoKXUG3DCCtPY0RnvzXkRH1gYkQ4YMzZBReVPMB844H2v+ldh/hgcHLh5bq9ilZYy5nMi/hXWbP79vq9jpIiIZwZyGuY/szagL2pXuTW7ET+kf8TaQYQl0HUBW5x7vKVb8Pk/yj1deOsqelhkonxFr7gFzc+8eC2PBbrR7GU6me/0NMlrV8WJy9pN4bSP2nyQX3njw5vlnz0WG3kJo3oM1EYPRhay/8/vT2TxfKJWE7TdZdhzvm0n53u/9yzuC9L3+D1zRhJ6i4eZHTBrEG/tnXd4R7kPm+odKOgp034rdPgtZ0IErC35U8WxOqsUXdODKDDftmtJ1FyuYucdjFvw3rlwefc37rn/BbrS8DDelax85l+zyM96D6kVYmUvkfofKLcP06QHRFxAGxxH7Pqxcx0fvuArwB5ttJpOqUMWioQh07fOHL33+LEzNMGiVgp6B1bPRVKCCIPpTJN5E1NbHU2Photv79mbnkmHRNqHrD4aUks51CXHs/XlKZ85mMFBslEP92QiL8WKSQXYIVreiLbfgfExrLJT3kdUwMfU6yugRLy9FSiDbe7EblhLt++1L72dWq0XY54wenIO2HoOUj2b3vjLo0SRg2gV+EhVbij2YYhG6ZO+5XqXfM3vwd2hrAVsf5DxRTnYxagNElV9Jjm9Hnr75OczKZ7JrL3Eo0n0rdspIaV8i+UDHc3C8CaUVRYbXIAwi/BtrercMy3tKBywqQnen3cv0uvT5s6C6hHzwQmK/AOFvQZPWACKzadmn9rbuIfKDCBEGIfa30hLcyaC/lxZz817KVuoMDqjAR4TvjWFRUfYi6n88cza/9X9FaJ5JLT6TwJyNR1G1BKadnN37qdUdxH43iMeI4PReAr5HrLtp58v8gt/v5a8nZrE74ghJkdKt2PI5e+IKpfvIMZfZ9R28PiwwL6ryTJRXimBU997doqjJIa7OVhG+A2AsX7OOn5VPoX/4d24k6F6Gk4nbT1LauPe6L72fWUGdM8M2zo6GOMkE/KU6FMUEBWblWqGx/LgGtUEGRYlsDuMi7soVuKU2yMO5p/D18tH0TeLaD31wHqrsY3+37pB7TiZtcX/39ALHHfNiQvMiav4NiBxNawDeJ0TTgFdgn5NNsRgxw223Q5O8qjF43YWVr+D9LQTt/0F5U/WIU7DGLUPDJC89bx71+psw9hyMLAOdQz6AyCevxlNyqsg+s6CUIEkqSz95kPYNdpqQuXM/IxdUiN1/s6b3ziOOkPYhoM6NBGc9hdNzlpfVq/ytCXlqmKc9yEEcQTR08E+kQBBC2JL899BOYvU8mWvly67O9wd28L1rn89QQ6kP18roUWzD+uncSHD2U1hmhL92dc4Xw9zWuQnRREN73uMcXtjLYjJikiesCkEecq1Q6wfv2GWEm33Mf86J+I9LlzAwUWtvXueR4UZq+2IMVvjEEFFjFC3AxQvnkW95OyJvJTDPIjRQc3sIR1UazZBGWceIxatHxQMBRoSCTRSt7h4C/Sf6Bj7Lpx94Yr+1zEQXrFg0w+Zp6YwlON6G0/Mp2Lloag169QgusRrFNPG8RvQRVkXEoWowYrEGcgaqcYyYH+HcF+nf9S988qHaaObytPP1RoIGAV16P7NCx9+J5W1iOKUwC1vvBxeDdzgRvCaFlFYOyWuopOQgQigW8u0JGcQRP8dzg9a5ce3p/G5fMmmaOxVpHA3LbyA8ppMLgH+wltPCwjCJAESqGBmZrSwHeMa65/k21q+KNRaTawN1EA3xGydcP1Dl+k+may/2YCtdOI4AHB4RlTDDjPeWk2ZxTPtFWHMRBXs0dQ+xV1A3gngmgvgUVQdiCIxJlexx0I/x08c+QeVXQ/Rg6WJmxY9GKvz7T11CIXw/SBehCal7cD5OtqGYCbRUNY0kOSAkZ8AIRP4BVK7mh7d/gU3E9BRtevM2I+SlilQqmK4u3PKv03rss/gH4D25Np7m6hBVUyUGK0lcQsa9k1JDBLBBHsm1QK2f36nn44NbufbaLoZKJUyzAeWRyn/5AxRtwOVBjlPjOkRDKOAEbLpiOWxNSEPDQS4hpWofv/PwsS3f49pvX0QtJUX9wyWivSPob0BYQ87+KTWXKpUYZJJr2RQP6rEmIG8hcncT6YdYt/nrM+q0Twjbc+lJswhmdSP8X/I2oOpANU6JerJvMBXV5NAIrSUQiP0W4vijrN3ytZkir5GK/IH7OF9yrM61sqg+AHE9acIustfwvokkQAWcDQlybRAN8aAqF3/0JL4JUFLMIW7lpEcxXYJ77+0c3zqLG/ItnOtiiIaG120mkbz3Wntc4wFX48IrFvH/Spr83WZuFI8sImq4PxefdgJ583Fawr8kchD7GMSO+4Q6nHMfdeRsgCrE/gv02//LJ2/vO1DOwlTGN+guCeWyZ8UZLyCUzxPI8Yn75WNEgmlalwdVcjY5mevuRoQPsaZ3+3TKq+GKXXYbT83PZb3Ncb5P3I4YsDJF+6qh1EGeIMxDrZ9PXdHDRZTxByIjVaQbpCz4Vffy1iDPx21Ae60fj4DI1BWXN9YeFpLuq1GdG9cu4u0z3VWTMf98I8axsuPlhObLGDObauzTc2p6M7VVE3esPWepxrdTrV/I1XffRWdnwKYpVq6GFQSweunHCMzFeCB2boLdrwmQV2ip+gepx3/HlXfeNh2WUSMWs+Iuzs618LnCLJ7V/wQxYKZSkfdRag+Qb8f4mM0DO3jzNWdy38jYVYOYij3YE0+hHBa4PK6Bi3Ei01dHpZqQYOtRmNpuvjs4wEUfW8oDI9d+ZBLRyHjQqqUfxsgHk/vFaTzZDwavMXkboDpALX4bV275N5Z3hHtdY0+qf4GlguPihfMotH6KluD1DMY+lfhM7HgQYSUEHLFbybo7r55Ky6ikBGUhXr2N9xrLx4wgUZVYzMzoqa4eV5iFdY7fDT7BeVc/l7tKGwlYhi8Lfvlm5hzdyldaZnPu0E6cKkZkZpRPqRIX2gmc44naTv56/VJ+2JD3TNqApmkSamD10n+nNfggTj2x6owjIQAjAXXncNpGS+7LXHbam9nQG+1XDzMpJFRMSOjSJc+itWUTheD1DEYxgpmhJAQQEnuPU6EtdxWrOy6nvCk+5AiZCcLyGwjLQrz6Pla1zOFaH6NRDT9TSAhADLbaT4xyTNt8bn7/j1nSsCou2sJRx7TyncIszh3cMbUuZFNrF4JqPzGe+fmj+M6qu/mLshA3ssuPJCJKJzSirO74Gi1BFwNxlCrW4Qg8zS9QR5JHtOelwzdeehhPwOJRIudozX1uSsioVErc1vedcSK54GaC4BSGonhGkvX+8jIowkAU0xJ+dCrIqLSRYMOFRCvvYlXLUawZTPJ6RGYgYYsQREM4Vea3zefmVfexsCxoW45v5Gfx3KGdRCIzcyqOCEG9iteYlrCdb6/azF9sWEpU1JnTgkNG/X6p08ImT33pV2gNXp2SUDhu8lFNGmdbkwjBpgl4ezkKHuKUg/xhXmsrisGTs5bB+lu4csvnJ8XtKJUM3WXl8lOfgg/+h7x9OjU3USSke/9v49ZZktsjGXfM72D2fExbGDAYfZC1vR+djNysRqxi5V28o3U+1w31EYvHIjO7I4R6XGEOttrHVuCO1jn8/eAu4plKQntFLDw+zGHEMhD388I1p3H7TAlgH/qhNxR2xelfZFb+TfRH4yMh1SRHxRhL3ibJjbV4NyKKc3cj9hZE0xQwUdBXYuVZeCwtQVvy84dx1a0oFk9gLEPVl3LlPd+ZYOWSNClfWb30O+TseQzFMeawSEhBPYhHCEkz5DDCcMqe1ySxs0FSCWkzIekAqjGtYcBg9AHW9V4xkeTd2Pyr7uHZQZ471ZNz8cyJqzRBRmoCxIYQVfEiR07LZVVcrgUb1fl5rc6ia5YwMBNyjWRUErqs429oDSrUfAQajGmDJ9fEkLcGEajGO7Dmyzh/P/nwS+DjAxZpFrEsPLON2M/B6fmI/DlGXk7OhGmWtjtAdvYox4F6claI/SNo4QzyP9yVupyHn1vRKJdYufQ6WoMLk5jQOEmokRtlJCC0ScnGQOQQBvBECL8Afg54lOOA4xHyQI7WsJBkZzvw3iVFiGLGTYSinjCwDNbP5aott0zIbVpatLq7l3mFVn4U5HhWfRBvzAQr84hs5AlJHjyQbZ9kOU88CU3y2lWJC7MI6v18NVhEF7diyucwreU+B/6AjVuf9596FoX891Fv8YzNNVKNCW2AFYjdbXj9AgPxv/GPd+/cP2J5iKZKDaxaegqq7wJ5KwWboxp7GGPKgKqjJbAMxd9nXe+LJkSxGoR9acfbOCr3WfqjCMZjNaYWUCPZMPIDxP77iGxG9CZ224coBMqjPxqkMmxKC6WFbTzZbmjzR6PahcjxoK8jH8xGFerOp9M4zTh2rCc0ivJLovo5PHLiL1m4UCmXx03ewy7ZvXyibR7vGXiS2EyMW6Oqw+UPxpjh7OWEMZRYkp+xk5UQeVikJrjG+oxluM5Sk6O8sfakHGQCLEdV4vZjCHY/ziXrFvOxzo0Em6bxWl8O+LUihrNPCNh+1O3kzWJqrnkLRNP+Li2BIfJbUbr56O1fHWbbnqJl6+OSFlzuHQPZd11KMk1gZHX9io7nYPkw+eCvqTlNKoxkbATZEgYMRm9nfe+NaTnI+MioVDKUy55Ll55EQX6A17m4ccQ5VB3W2KRcxT0MeiPCF1jTu/1gVkUqpQOfYCs65iC8HitvJbRLkwJYN3YrsrG21tAyFN3E2t5XHo6L1nDJVtzH2YVWfhANJqUVh6lQiuCMEASFpKDVRVDtwwO1dDMVWo5KPn2aod0gJjudhKSKQxAbYHKtYAKIBqE+RB2Gc6gKhdnJ91xSJoKLk8ucw8lTUkVNgLMhtWiQ569dzD3TGS8KDmANGSo4njn7CtqCxfRHzcc6VD3WJIxdja9l5+CH+My2/r3cl+biMrqHjjbFlElTCDoN5U33Aq9m9Rl/j8inCaSVyHtMsy6IWOrOY7iGS0/7Jl1btu+VfDgWbNuWnKxWryW0xzAYuzGRIoDH0xpY6v73DMVrqYXXce1tQ8OEvLwjGFHFzD4EtHcPywvT5nHrK7uA6ynyWU7s6ELkQxSCZ1Nzjdqz5q0jEctQHJEPXsFlp7+d8qbPjjO+JguLybqt4Yr0hEfk8BQ5CLG5VoLaENXaEL1xzM1a48kYfiTKb9Ow2tOqO/kLAlp9zGtsyLPzbYTVPvAJIU1poFl9IofCbKyLIK6xY2gnX7UBv1LhodizOQzpc0LexBw31MfzbEC7q3OyCXhZ2MJsG0C1Lzn0x+MeiiA+RvKttEVwDcKLR+ypKXfR9t4GxaKlp+L54BkLUXpRDdAmXTLFE4gB6kR6Pus3f3UvApqoD1fCsK0oVCqOy5Y8n1z4HaCd2I/Bahu2ij7P+t63jOuUbyjjiqWvpdV+haF4bHGhhuWYswbnv0FUfzfr7350WGaH12PpAC1Zjv4IgX0/XhkbcacHTGAEZTuBP5VFx++ga6FC8y5aUbEVwa3cyssLrXyjPjB+ayjNeJaW2Ui1n996x435OXy+/HQeGe29N2wm/M1RnOQ97/COt+bbKAztTGzMqQiWq+LCQtq4RfmGq/NFG/Lt8on0NfP+dU8yZ9eveGXYyhtQXmoM1AZwYsYtS9cyBzvUxxvWnsKXpstF25+IKhXHitO/SUv4Mqpxc8qteAJjUP9b6vHfctVdm9JM5njS2LWRKb3ytD8nDL+L0k7s/RhO+yRPyblTuHLL/eOwipKWrlt+di+BeTaRb97SSEjIU7CWmruYNZs/PimkPTKGlbhsywjMP2PlqdTH6Ko1btH6ow9zZW9prFZRSTF0Q/213FKYxbJaP45xuBbe44McxoZQH+L6ekzpmiU8Prwt0jaqLMN3p3LsTva52d6LjOzqWPopJ8SODwYhF8Q18G6Sb8AUl2vH+pgH1fDujzyT7410W+cejzm3A7+1G+1OXkI3NNa+b1vZyx/gpdayOmzhLwZ3JtNZx0qmCj7MQ1zjN+HveFZ5GbXpaC8s+5HQqlPPIsz/kMg3d2IpmpyWuou6fyFX9d45ZeUBjb/z/tP+nJbg23htxTWZwbznevpzPNy7nIWdMsaOczErl76ZluBzY0pabJBQaCw19y7W916XxM0qOiE3eIciza6K432LT6Qt/11Enj5GMlKseNCdVOUUrrrjsWY3bLEHWyniV93D2WEbt8a1NKFi7C6Ny7VhvePXON70kZPZOEw+iZI2kwQrJUXSm6IYYNX9XBgYPq2KdXU0bck3wRxE3DaXYGgHnxvs493XPp8hFCmCqYylRa0iPWC2gpYFTwmz+m+5JAi40kXocN+LMQauW44iGNzBe9Yt5lPTUQKyv8J6uxojjZYRo4vF4EBjouj1XNV7J8s7wimr3i5vilneEXL1lv+lGr+JwCRdfpuNfVQdwPn86eL5SRZxk6dheZOjWLSg78d59mleNholaGoJJSS0vCOkq+ImkYSS59RVcZQ6Az52z4P0D5yL15+TDyxefdMrjz3kgvkY9w8ISk+xqc9dLCafWwzvDnIYHccnVU1ISJVfxX2c+5GT2VjaSKCaWDmppdDUni0LvnwOcamEKSnB2pO5oTbAy0T4nc2jjRjORJJQyxyCoT4+fsUpvPXa5zPUo1gErcgYOykK2iXJkIAexRYXIWtO5qr6EG8McogJxrV+E1cB5b2ljdNTh5ZspEZpwqqOZ2PNS6g5mnPJ1FMIAurRJVx517emtLC0gQ29EaXOgKu2fJ2q+wKFwKbZ26M/Uu89haBALnhV8qXO0RWrMy15eNaj55KzJydWRZMnkGpMaAxD8UXDJDSV8mqUbFy77SFq0Yvx/hfJ9XyT1CAi1J1i5S2sfPZ8ihU/avwwOfV96T7+RCxnpc3BzBhJyAd5jCq/7n+MF69dygMlTdIADicRr1zGN+qurjyd78VVXi9gTMDeuTyHFxOK244iqO7iuitO5uJiD1YVGWvXxwOhS3CVLnzpPnLrFvOv1QHeEBQwJki6nI8hcG3iGq4wi2e6Y3g5SZ/tYOqJiFtNOvr1ghGKPIpyqSMfWAZrt7HTXkepM5i2Gdbdm1x6pX0RVbedwNq0Xm3UkEMyDUNeTbFoWXTs6A9v2bLk5PX+LZjhO58mgvnqaA0D6vG/sK73E9NC2iPJ6Kq7fko1ugAjNj2Rtan94rynEDwF23YeQjKX7lDWUAUjgtZiluTbOc7V8WOKYyhqA1SE6uATvOJjZ6UkNIGn9oalRMuVcO2p3BJXeXeQT46pwyYhjyvMJhjczZfXnMK7ShsJKkX8BGcxa/kU6sX7yK0/lS8N7WJ5rhWrYyRSBRULHv4OkhjbVBNREhtZWFK8vpm6A5qxhkRQBcsKNvRGqRJPT2amoHR3Wtb37sLpGnIm2QajHwUBVSeInMufPfR/EvflEKe1kjQ5Kz1vHsgLiZp0y5LEQEM1/jn5+JJkFG/v9LVhaLi0V921iVp8JYXQNm0VNeJcsb4ZUIpNuGWJlC5Qh451gyj4XBu2OshVVz+XuyYrfrFBiEpKsPZUPl0f4muF2VjV8Vstqnibw9YH+F3tSd6rirBs8sYVVZ5DfflmwitP47PVPm4qzMaMZf2i2PoAqPDSS+/nKWXBl0pTV7pihk+0gZvOJRfMx6kf1dVQ9eSMoRpv4cET/gdozBibPnRvSqy4aOhLDMWPE5igKfNUUQIJsXYhAIsO8dm7OxOCjuJzaAnm4zVqyi1TwBohch+kfM/jLDpWp70/9A29MaWSoTCrRDX6CaFtkozEEHkltKexcunx6c2ZOcgBQRF8aSMBwomqY0sbUhKXrNrHT49bzJqSYrqZ1IQ7X1KMUVbUBuk3AUbH66IJPteKasyHrjmLx7tvxU5qq1ZNBkZq4hm8rTZIv7VjWL8g3hO3zKYl9PwVwPZXTl11fpCOMHYEdJK3IbGPRvXhBZ8k0cuDVCqO0sIc21umV7G625Xl/cK1vU+yqqMfY45Nq9RHdzGDICCKXwfczNZOgU0H88s8bBK8fzGqgqoZXbXUkbeGaryZR7d8acZMGRGUnm2Grk1VVnWsxMjXmrRok9haS3g0cXwK8AjFolCp7G8N/TtWBLf6bhbbHKfWh/BjurL3aK4Vs7vKNRcJtZ6kPGPSlLksCWlecQ4Pr7ibf2k9indU+8ae76TggxA7tJtHn6jzTykBT/ozLwt++2bCDUt5bPVWPpWfzcrBHWNIk1BEY8R7XoJywwKmLss6cRHyJ+QRXkjdJTPFRj22xKYu3KtZ0fEcyr33MlNw6ZJnYc38pGlbk7GIkYWF2/vlENHNVAnkvKTqXZqxhiSpbtKrqODSWNzMQFfFUyoZtpX/mxM67iJnl1BvMhfLq4K+EfjvJnZLa5gnqEVj2tg+yGOHdvFbC/9ZUkyRKYhbpLERJ1zn6rwDxpG1DC7XThg9wRc2LCVasJGAKUoSXPDfSaP+0PDJoV28xwS0aVr+3IyHFNdA4AXFCqbchdtreuukEpGgXHy0gehUnNLkggWvSiA5VL/LytNvRMQl+a4yTZaRmrRlxmsxMofY+SYrzyWNXMwBYEevPyihCMqqJceA5NP3jO7ChtYwFD+MG/gWJcy0u7D7fqpF2wxlHCvlegJzA3XnmkxHEOA4QFlYOfAzT+NDznOmjn1XaJCDuMbmtYt5rNiDla7JJ6IyaEkxj97Kg8cdw//k2zlrLFngqqgYbDTIEJ5vAyxaNnVueLmMX76ZsHwyv1l5D19sm8M7BnfimiljEZIBjzZH+4kL6QS+X6xgKlNgGSWLy1VPRALTZO7QsE9JrGDNn1CwH5gxqlX3UPfafPsLkbQJ20mUnl6g/PPqAU+B7k4Lm2I0eCmtwVMYaqpBXJJxHsW3cNVPdifdDjfNrMblW1MSMcE3qMaPY80xibVzCJJVMdSdJzAns6rj2ZR7HzhQZnoRqCSuyosbk0qbDRI1bnFEuVEVqaS/a0pcVsV+4RyqK+/jYRNwloLKWAg0j4kG+fW6JfwY9p91P9nY8UjyHEzAjdEg72y6li7Z9XHLLHIDT9ABfH/u8SShm0lGqqzmLykEeXwz1/b7Uqgqg3E0Y16R9+NqkyAawNETfEsghqRbyRcBYduxM2/QXRlPsWhZc9uv8foggZFRbxwFQVXJ2blgjgNgW/GgMrdCbtzRY0ttqpt2baskf0+VW1wd0nrLMakFwq69HP8pRKWYENFQO/dHdX4a5IfHDDW1eO9AJfEQdnRMzTW+GeGijc+tSpQ+nDGvsdYKSdrlxfNLyr2Do/rEY7lFMRhir0T89pAuzHSj2NiC8uUx1V57VQzN5EKNeTOLYuuD+HpM0r2hMnXiaHQJCD0/9nHazal5ffAmBAzfBejRaejeKOjyzYTX/ilDCLfk2hMPuUnX0kZVUM+rSxsJKlNkzaVCkhk7AXIKoiTJtHRD0vvnwo4Dm7GLNjVak5ySdtoa/TYutIBupI9fjBjHNHMlIWzd4xk1ueVd/PRD8FtjX81SPwa3TPE2j7iYX88K2AbQVZz6KaX1YOzZxQJqLBiXyHLrrdPT72jB7mGr7idxDZSmC7JFPRhhwaN/ln5+nfzPYNIwybx0B8gfIRUlboZnR/IE2w+shFsbyqmLk6D8qKUNiaUF25MM6k4DM5SIGlfvLo6IvDaV0DosPfvag21oSU7mVi/M8S6ZiNr0r03acgw8mWNgusRiD6fMY7r7WN+aELf3fKXWj7Njb8UbzY6mbr82Fnd82oT9j4+IRCyRF7xcn3xhkz9ILKVBRAuGuxU3h5k/Smhh+tls/DDOP4YVadoFVeYd+MsJ5s4lFAjHtaUVE/z+yGlMPxMR+XHV9qFC2FaldWqJyNBOE6l/f3humTpyVon9d9iljzTpPpkxKpOb8XIok+QTrbnvcYRfEhgSA72pHRRn6j4DH2l3so9nwwDKY2JhDIcLeEIrtI/FTz98IvK6e3oaRE4zCRkxOC94f/GIAtSJlcKRJFNB8WOMF47ibhUcKvpHtbNmzrMEKZ/GToQtYT7J+B79bemdqVBQzzEw3FhuCohIeSidlaWHoW4z/6UoqnFSK2ctoRFq8Vu5csv9FIt2UnoC2SPCtUiLeTtaEZ2HH4vrqYf8fLs9OSCnGRVNOYp7bux2ppPuxpIniM9NnY/UcM12pfGSMW4XdWlQVo6IlxWhNQwoBAbP/1JzL+GqLZ8b7sc0KZbXEeDwltI1DvJshGckuU9N91i6/0Bf7u5O3h/spKBCQUeMQ8gwxaeMjs99NlP4vMZ/PadAPrA4D7Hvm9FbrFEWpgwQu6/idSMf3fwfgCaWUNlN4t+e+cq3qChJoo6fSz4XNN2rPNnl3z3kBsszfe1hMiSRlzHO2RMBUSKNkhyubtDyFBGRjlG5PKERYncrkfsUNf99fH5m5yLNA/qrjnX37LkOLmInzRJqFAYLL2L1qcdR3vTrqSogHLd7FphZY4xsJfdaGWYkesALIIZ8s090+O5cqedaeXJqLSLD/1CN4/Tfo92fJa5Y7GuoFLlyyxNH1tMpJid9V8WPmJg6GWqdFgbb+cR2DvBrumfolUBl+Dh64/Dam/6M3mYqPyO9ABFBSz+jEPVzYtwoVWmupB0F9+TvqU6VP53EiHL8GKf1Ea1PR1+q4hiQiJ6iTbsayhHx6qo0hjxOASGoTwYRRK9O/t1pZuKGZeFC5dLnz0J4Dk5HdydVPYG1VOOHUHMPIFQO3FUg9OklQYYpRSmN0Q1WmQc829WT3tRNu2YQz3tuQkRMGRH1hYrqY2kcRUcnIQUhR4s+bUSTLz1CXlMcm0LAvDypvF82erP5KbeGioZyWQlqzyMfnJiOph6tMV5SFqNsZ90dT6RdPg8o22orOYR8dms2TRgc96a3jz46la1il3eEXHvbECL/TsFAM0VuqjEtQYjxXQBs78jM8wMfLZaqUwLzfOp9C5Mr8plGRMNu2dsZqx0u/vsHfUd38n8e8koSo8iuzKYeLocd04WJDrtmu//s0fS2bQoenOEnw7VVD1D3TaaDiyHyoHTRU7Tp9I5snx34yTpCA04umXHu2cgxUoF5OTXnm5/Rph413xrNyrSKSnZrNuW4dVmix/mYl+faMN7TbKa8C/MAfLd8DnEpyUXSySeiTZsSCyia9xVqbgCTJoMf2jQ3xM7REjybzT8rAkpPVhN0aKvIvp5VZy6ETZ7STJHVrQZFUC0R2ra0Md5oxbxJ18mqe4BaeA968PhQhunDSbPS52hZnGtpGKdNbFdQE4ARfgKwvXdqWhsnClEsWq753iAi3yZnaGpAoSI4VayupdTRytaSzhwFm1lUlGZyh3i3njI+yduZZvQUbTI2+/RzKIR/y1DUXO6QaGPE+E1ce9sQleLM7SrwR4wFHbhScr8910XjcLCmuI9SsokWPi7pn/5cMpCkidszEUPkPC3hn1HVT1Eu+yxWdCirKHYU7CtY0fG24fHP0+qSAe9b9DRCcyORbzaIrum01ypGPg/IcKvZgyCQ4RvLcUluIJe5/GN/vJiy4J/cwnxVXlvrb+7GLO23HQ7upKqW7zcIbeosonLqnoWbv0M9/hmBaW5SqohhKHLkgzdz6WmvY0NvRHFhbrrUnWLRsrwjHH4Vi5aZE7syxKoE5mouPvU4ypviaZroIXBrEhvKt6wnFzwD12yPb/XkraHuvsva3p/QUzSj1ecNKaFCqGPo7iCCpqvpX7Cbuk5vIug42v6jfhpTFrYls/mkrYU/NTaVfZPSN0lgZih8jHsgGSYwdUQESqkzoIxi5dMETU5KTbpoGmL1FMIvc9nS11DZVueGjnBKJZ8QjlKpODb0RsOvSpovNBNcRkGIvWJkDq25b3HJ4mOnfLyQIpQ6U5ds6VoK9vXJEABpeu4VsSpWrkzkffAfLRs8irTP4RFRHg5yY+ib3DigBSmfQ9w9TYeJVVT9mF0axCBGyE/XVksb3iuOrpa5iDZfa6bpTnggtZCmuOh1pFXUZ2+kGv22aasoGS2UxIsK5qusWPpaLuwdmeg4uepdIjndi1hWnvZSPnRmiVVnfIAPnVlidcerks/GzAgQGzFEzhGa51DIfY93pGS0fAqIu1RqWL8xq5eupS1YmWbTh03SgqMQGOr+W6zp/RE9xUOXxyj0gCkfx6AqD9qw+TwuVdSGiMAPABZNMRE1RgrN3c2jLmJLrg2lmZ7PiorF1PoZ8BH/Cwx3SpxK7HgEf8ldtInygmgIpMlMeQGXbwPgv9IDwE6VJWr2EmOp0/LJ2/tQfwU5K01aRY1yBoi9EpqvsHLpe+mqOMr4VMlkwgko+b1KGc8HO17MyWf8mCD4FqHpptV+hNB0E9r/ZPUZ/8MlS08Zbv41M+JFMaFdzPz8zbxv0dPY0BtR6gwmqUBWEmu37FmGZfXST1AIVjIQxSDNxakabW+TWNIHEJStC0fdoJVklpDE8DEEETN6umxKQsQ1dlNnPcDWqQ6GC7oI5JLnM6SG620eo00cygpxYTY2rnLT2tPZVlJMuTy1RFQqYSpduJaQpwQ5nhcNJcZdM89YwVb78ep4GODWW6c0XrCfhSGwMKDeupnQPIfIuaZ7GGtyGUzBGqrRN3HRhVx5768SCXUGdG9yh8Gwydq2d9jhJmbvP+NPCHU9obkASOeZjTBDPZYWa4jcY0S1pVx5768ONH9rDLJSVp5+N7lgcdMTUQ+ucTF5G+D159T1EtZv/uoEyWkkASVuGMBlZywix+cIzJnUYjemvtSqjtbQ0l9bw5VbLh/L2OyiYiuCW30fV7TNZ/XAE0SajI7eN4itabDUtc0nHHicD61ZzEdKmgRepyEyJCWQvv8ln2/nh23zOH3wSeoihAeoxVNV4rBAiOFJX+f59tn8FJIx0FO57OXJyOlo9b2sbTmKywZ34ZuZa6aKBiESRex8Ro1jL1xKNJVF2vufwEUsFRyrlnQS5m4hco1m6mPIzlRPPjBEbiewhlA/Tbl3cDies/BxSZXtQAHBvb/a3WnZ3i8jOijCJYvbyIXLEbmMfPAnDMWaeLQHDLhG5G3IkPsfjg1eTN9ttbQdrE4rEQH4dBKsAZy/nljXsr73F0ByvV6BETk62jRZ02mGCeg9J+Rpn3MRxnyQQNqpueZbfDSeZWgF5x/G184k/5pdlAHKvlmFblgZK+9jffs8LqsPQFxLn80ehEEewgIM9bFuzSJWlTYSlM+Zvla0jRjJ6i0cHbTxrcIsOoZ2gYtR2XPgGRFsYTZENZ4Y2sl5Vy3lzlJp6q2hhqxLWwlrngdyLTwjquGFpm7MXGE2trabnjWn8LqpPgDkoMHfSsWx4vTrac9dyGAcMcaeJqg6rLHkLVTjh3DyT8S1z3HNPY/vb09i2FYUFlb0oNbK8o6Q+f5kjP0bvL6VlvAp1Bw4P7piNUY/x/45rN183zitooknooYVCUprYBiKd6D+0xh3PWvu/vV+nx+SKSONQY0LHxe29yfP8IbeeK/Tq9TRSp2/Q8xF5MxJRL45We3nkpGM7o61g/WbtwzvjTHKrqRIWfCrt/IWE3IRysJ8G0FjAmy1n7oxPEBM90cW8h/FHmyla/r7fTcUcvnXaT32WaxQ5T3GMrcwKzkZ4hq4mD6Bbw7s4IprzuS+6SLQxt9dfS+vzLXz9Vo/vtlCV4W4ZTZmcCdvW7eYzzcsq+klooZZv71fmGe+R950UovHtomHlUw9obUEBqpxP0Z7cHovNVdhdn439Fcpb6vv9b5LFrfRXrD09QfkW15JaJ5B7P8aI4soBAE1B7GPQWxTLStUY1oDw6C/jnV3vJvlHeFeFtZ0EtHINVoTkDNQdQNY889E0c3MnX8zK2/e1dxOPHM2dfcc8ublVPUNtARPJ/ak7rUZ8wRc1ZjWMGCguor1d61LYk3jH5ndUOrOEsGyN7K4NsQrjUlSfvPtVPgZDzbKCqbFHTtE3KVh3Vz6Q2aZubwwH7IkjsE7fpefR0/5OH4PMJ0EWlQsFTjhJH6Qn8XzagN4kdHjQ6qoDRAXs9u38rT1z2TX8H6fZiLaYxW994xFtLEZKBCrx4xD+RSftMQwAfm0gqTqBgCH6q+BXmAotbqeBixCpDUZamJnkTNQ8xD7RDmaJaD9FCr+Aus3//2MJKI9xO0wElAIoO5AtQ+vt6PyQ6wKnifw/AIRRfTpGObjRIFTED0PZDZtIVRjiL1L70zGs86IliBkKLqatb2XjtMSOuipPVpMiZkGRYqVJBB8MJKdjphQAz092K4u3Kq7eVGunZvrg2O0hmYRDO2isnYxXdNBpgcPYlUqjmLR8vHKVt7f8Spa7U2AHRcZCQbEoKoMRckHNKYNAYyZjZWTh2nFK2lPnET3694TeYeSkI9IMC7CVQXRx4fdm5kIQUACFGUwSgLKVmaTM+cSmHOBRDZxutcDSzr0IPl65BP5DUQRSjBmC3Y/EopvYm3vCnqKlmLFT8SdXvkc4kYgeGQd04IOXBl0RpJQuoMq4FCkCGZub6IDC3aj3ctwMs0W3KePQYo9WBU+KoLKGILMAuJjUOGLAAuPmfq8rUMrdSUtRShv+i6XdLyaVvOfBGJx3jeXiXsgVUuJRNP0NqdKNCJNQEjyamUkiTXZWe7gf1aoOo/lhuTfm2Z6keYeOXlV6t5T9z6VmxmWfRx7RPb/OoTjlldiPYYMRrdB/QIUpbsCXRNopgtabkzPOtLQIKQReUXlaV5Sw8pcdQ9dhTk8b2gX3pjmEmVV0SCPrQ7w67zhu+lhMeWHwehkUt4Us7wj5JrebxD5V2EkxhppqjB2dFcncRtEguHXHrfrcGqURkq6xqzQgH6ZK3ofnrSxQU1ZwOOVk9jUbQ1TKyeV3UG+Pn63MKYlCKi6rzEUv4x19+6gG5kmeWVojkhk0TJ05T3MFcNaF+FlDDtAhDjXAmK4tnwK9eWbCZmGIubmrJoNvRHLO0LW9X6TIfcKhIictUm8ZqY+IRRVR1suT390G2ouooShZxpaVjQo9/DJe7J2s8MALWFANf4Ia+54Lf94987DyLnKMEW4sJegS3Dq+XDrPI6PhsYQG1LUBARDfTx+lGUDwIaO6UmXaN69amT/Xt37XQZrL8LrfRSCAFU/w3oSJ0MUAyPkrGUo+hLx7vNYd8cTDdN6StciAp5BvNYpBBZNZ8HNHFk5ctYiEjEUvY+1vR+ip5h09ctIaEajtJFgw1KiFXfzqnw77xzcSSzCWGKoLt+GeGXDipPZ3bmRYLqKi8cW52lUjH/snh/yuH8udf9vFAJDIJJaRzrtBATJEEX0N/j4dazZ/Aau+snuaVEsBYyAaj+4vyRy36E1Z7HTLq9EVoLQElicv4u6/3PW9l5LsWjpqvgZPPYoA2lKwTnEl/6QWTbgWgGb2rXNunRqA2y1jx1RzCcBWXbr9B08Yw84V0hu0zb0DrLmjtcTu9ci/JLWMEgGmGg8xSf+SKUKgJhq/Fn6hk7no3f2pNXt09dGIrmta4HqFq7Y/FKq8UWgv6U1mA557SHrljAAqVOLP0zfzudxVe+dI67oMxKa4XEhlmFKP6MQHsV/59t4Rn0QJ2NL03D5dkQ9n7xmCY93bsSWy0cSEQHpZhUU4aObv0ZUPZXBeB2qfbSEwZ4TXydrU6cz7PGYdIw01Ki5LyByBms2L+cT9z2WKBYzQLHEoyapa15zxyeoyWlU3cdAB2gNg9SidGkMSSdeVnggGiZrQ0zs/pk4XsKa3hKffKg23MUgw0yHdN+KLZ9DXO/jqta5dFZ3E4tpvp2Mgrd5zFAfv50TcLUqcuuy6U2bMIe1wQWlp2hZd+8O1m1eRTVayFC0Bu+foDUMCAObBmnjESe/jvnvJMTjUaKksFaSEz1nDF53UY2vJZTFrNn896y54y6KaYxjJimW2uS0KS3McfUdv2XN5kuouUUMRh/G6a8phJZC0LgxdPvIS8chr3iYfHLG0BKECEPEeiPCmXzkjgu4csv9w83jsnjQEYHlm5Or+hV38c78bN49jrgQKD7fivGO1StOZnclqZeb1sNaJuz3jKz0vujUoyiEb8fyMkSeS860JsmJKS94VWgqOm8QsQhJ4l7OJhnDXndhzU1E8bdQuYn1vUkJRBHLQnSSlGrsmdVKUmfu/C58/ZTh6v9ulK7iHgskKeK9ACPLEHkJRuYQGqi5NNtGk/weER3l71lsmksUmiQ+VXdVnL8f9D8x8q9c0ftwIquiPWRtX4YZ5o8hy3uT4PTKLby5cBSfi4Zw6hhT6Y4qrmU2ttrHLeEpnLetglS68NPtNQQTJqbyphhF6O60lDftBK4CrqJ05lMZiM8n4AScvgZjQqzMJm9HL6KNPdT9AIKj7rZg2Ejk7qEQ3EL59r49kbvOADZ5yhwZroWgUHFJs7ZOQ3nTAHAdcB3/eOZsfhu/Dm9PxPm/QWQeMDuJwY3ye+seIteP4Kn6m0AfpDX8Evfe8cjweO1hAsrcsCMFpRKmG1SWEq2+h3fkZnFdNITzDiNjIyE1ARpH7FblfWXBF3uwzICYoEza7x1pIQ1LdGE7tBuqUScip4/qGSq/xLtv0xr270U8wAglnqoY0MRZRPtbIYm8EjLd872Ln9fCbB9S96ehevaojcycPkhr+B2e9DGf3EdeyzvC/Sr0M8x8EkqzpjtLBGe9jnW5PJfUq3j1iIyxiFkhmnUMYd9vWLnuNNZPd5uVqSCivc5+ujst247Vw47ZLO8I2XG8T3v06DTIarKI6ACkBIdT6U4Jw/YOy4JeN87+Sxmm2RUrpUHpi3/EvJY5fLVlDsuGduJUx2YJAahP+w0N8vUlJ/OarbciaSnHjNgXweSLE2BYoSR1DwxzHxk9UL6gXfdqoLahN0oK9f/At2B5nPI693g/XJxaxkNvFv85Uq0gIS5DvPoe/jJo4Sqb4+SBHcRGkh5OY9pQig/y2Pogg3HEP3QJrlRiRs2jC6ZcyaBx/d+cdVT+o96TY5PXht5Mi49kAlIM3UmHgrf8kFlPOZoPifB+Eaj24YyMXV/TuJA3llo8wMuvPJ1fFRVbnmFdDoLs8WfIML0o9mAXbkUbvYxWP8hrA2FFvp0zBp7AxXWkmQZnB3H045ZZhP1PcOm609nUsLZmmgwyIsqQYXps3eEYUKMJ2eU/ZZl4PhCEvEgd7P4dsTFjd8VGmNNR2zzCgcf5wrolfLykM5OEMiLKkGGKyacHTKUCFcGVIS72YBcu4UVqeKfG/LXNQa0/sYyMGb9+NkhocCf/unYJf19STJmZm96SEVGGDJMLKW3Epl0ctSslg5W/Yr48yfkm5I0IZ9oAakPgIty43bAGCSlR23zC6i6+vGYhb0xJSGdy6kZGRBkyTBIavZ/L5xCXgXUPM2dnPy/PtfHCaCddhdnM9g7qgyjV4Ub3E0JCgzv59zULOf9IIKGMiDJkmGQSKvZgT1jM68OAv9pd47xcK3PCPPgIqrtxgKRV8/Zw/2aDhIZ28qU1C3nDkUJCGRFlyDAJSMchuZV381e5Vj5gc5yBgqtDVMNHVbyAPVwXbAQBqRjitvmE1R388xULuaCkmG7Q8hGSSZ8RUYYME2kJpTk6q+7j7S2z2ODiJAcIQJIqdzORY6i8x9sAk2slHNzBdWsW8q4GCckRVM5jsq2TIcPEWUIVwa26i1OCHBtqA/i0YVli/cjEllSpEudbMWIZrA7wpgYJlY8wEsosogwZJhK3YoqKyDZWh3l0qIYXmXgdU02a3RVmETjHo3GN89ct5n97FNslHJFdFTKLKEOGCbKGyucQn3gfTwG6qv3IJJFQbAzSfjS2NkTPjt9w5rrF/G9pYzLN40iVX2YRZcgwAViUFig75Tn5HLZeRWUCXTFVVMG1HUVQ66dvcCfvX7OQz8JwXCo+kuWXWUQZMkwAtqZEJIZX2wIwgdaJQmxDpH0eQVTlP2qDvOiKhXy22INVRSpHsCWUWUQZMkwGJuhKPrWCnAi2ZTZBfZDtQ32Urzg5GZveqBuTPxCxZUSUIcPEuGbJLVXMN12NNx+Ot6GKQzGF2dj6IL66m88yRHnNUraXNPm9R7orlhFRhgyT45opgIPbohpOxtH9dJiAZmGdgzjmP9Wyds1J3D7SCvpDlF8WI8qQYQJQFnxJCX72E7bj+WL70RjvqTfFP4pThcIsbNiCeM83nOPFHzmBV685iduLPVgU+UMlocwiypBhAtENrruIcDcrB55kSdtcThvcSQQESSQ7tZKSGzBF8MYQFNqxcQ3nHP8lwqfLz+T7kEzvoBvKfwDB6IyIMmSYIoigJUXKS3j8fZs5D8NN7fN5brUffAzeJQWoxmKCEAkKmFo//T7mKxJwQ/kZ3Ja6aNINUhb8H0ur5IyIMmSYeBfNlIXfF3t4wUmn8A8qvEuEBUGONgRRz0Bc51fxEJ+PQv75iuP5DaQ9qxNCm/aBhxkRZcjwB0BGmgxGrwPXvudBPvN/cswb6OcsBDP3aP7fwO94srw4iSGNuAn7o526khFRhgyT5KYN96U+kRqwHfjKyJ8pKUE3OJFs7Hd2azbmHZYNKszQ/F4pn0OMIqpIj2J7NMmGbtyCSbafMotofNCMvDOMmZDSpCKXCSOziCZKZIPjknPsJZNdhgwZER0eelJZqfwXVhS0Gb9eMQLwELMKT6BIOoc+Q4YMGRGNA1s7G8lov0REEGmCUNQTGg/8jHLvIN2dFjIiypAhI6JxY5NP/f0fMRQPImLRUUlFUDUI3wRg0bEZCWXIcADYTATN8hBKCcMVv3mSv1hwFK3B2UQ+Shuh7x//UY3J2YBavJUofi/nvcPx7s9kRJQhQ2YRHSbKKMWiZW3vZVSjr9Ie5FKbKEI1RjVO/9uTCwKcRkT+zVxzzwDbtknmlmXIkFlEE4Nt26BUMjz24NewfgGhWUIhCAitITCGnLVYIzi3mch3cfWW2ymVDJ/5jM+ElyHDwWIYGcYrt8S6WX3GEgJeSaRHg7YSBr8giu9nbe/XAI8iWRJkhgwZJg86CpGXMtc3Q4Zm8P8BA+qPBrgy76YAAAAASUVORK5CYII="><div class="tit"><b>Evaluación operacional</b><span id="sub-top">Prueba de pilotos UAS</span></div><span class="ver" id="ver"></span></div>
+<div id="barra" style="display:none"></div>
+<main id="app"></main>
+<div id="modal"><div class="caja" id="modal-c"></div></div>
+<div id="visor"><img alt="Foto" id="visor-img"></div>
+<div id="mostrar"></div>
+<script src="plantilla.js?v=9.1"></script>
+<script src="datos.js?v=9.1"></script>
+<script>
+'use strict';
+var VERSION = 'EVAL-OP 9.1';
+/* defensa contra caché mezclado: si llegó una plantilla de otra versión, se avisa en vez de fallar en silencio */
+var PLANTILLA_ESPERADA = 'OP-9';
+if (!window.PLANTILLA || window.PLANTILLA.version !== PLANTILLA_ESPERADA || !window.PLANTILLA.tarjetas_op8 || !window.PILOTOS) {
+  document.getElementById('app').innerHTML = '<div class="msg err" style="font-size:22px;font-weight:bold;line-height:1.35;padding:22px;border:3px solid var(--rojo)">Versión mezclada: cierra la app, abre con señal y recarga.' +
+    '<div style="font-size:14px;font-weight:normal;margin-top:10px">La app es ' + VERSION + ' y la lista cargada es ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ' (se esperaba ' + PLANTILLA_ESPERADA + '). Tus datos guardados no se han tocado.</div></div>';
+  document.getElementById('ver').textContent = VERSION + ' · versión mezclada';
+  throw new Error('Versión mezclada: plantilla ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ', se esperaba ' + PLANTILLA_ESPERADA);
+}
+var P = window.PLANTILLA, PILOTOS = window.PILOTOS || [], DRONES = window.DRONES || [], ITEMS = [], SEC = {};
+P.secciones.forEach(function (s) { SEC[s.id] = s; s.items.forEach(function (it) { it.s = s.id; it.tipo = s.tipo; ITEMS.push(it); }); });
+var app = document.getElementById('app');
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function fmt(t) { if (!t) return ''; var d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function nombre1(n) { var p = String(n || '').split(' ').filter(Boolean); return p.length >= 4 ? p[0] + ' ' + p[2] : p.length === 3 ? p[0] + ' ' + p[1] : p.join(' '); }
+function ajustes() { try { return JSON.parse(localStorage.getItem('evop:aj')) || {}; } catch (e) { return {}; } }
+function guardarAjustes(a) { localStorage.setItem('evop:aj', JSON.stringify(a)); }
+function notaMin() { var a = ajustes(); return a.nota != null ? +a.nota : 90; }
+function hoy() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+$('#ver').textContent = VERSION + ' · ' + P.version;
+
+/* ---------- Base de datos local (IndexedDB) ---------- */
+var DB;
+function abrir() {
+  return new Promise(function (ok, mal) {
+    var r = indexedDB.open('evop3', 1);
+    r.onupgradeneeded = function () { var d = r.result; d.createObjectStore('ses', { keyPath: 'id' }); d.createObjectStore('fotos'); };
+    r.onsuccess = function () { DB = r.result; ok(); }; r.onerror = function () { mal(r.error); };
+  });
+}
+function tx(st, modo, fn) {
+  return new Promise(function (ok, mal) {
+    var t = DB.transaction(st, modo), s = t.objectStore(st), out = fn(s);
+    t.oncomplete = function () { ok(out && out.result !== undefined ? out.result : out); }; t.onerror = function () { mal(t.error); };
+  });
+}
+function todas() { return tx('ses', 'readonly', function (s) { return s.getAll(); }); }
+function leerS(id) { return tx('ses', 'readonly', function (s) { return s.get(id); }); }
+function guardarS(S) { S.actualizado = Date.now(); return tx('ses', 'readwrite', function (s) { s.put(S); }); }
+function fotosDe(S) { var a = (S.fotosGen || []).slice(); ['A', 'B'].forEach(function (k) { var it = S.ev[k].items; Object.keys(it).forEach(function (i) { a = a.concat(it[i].fotos || []); }); }); return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+function borrarS(S) { var ids = fotosDe(S); return tx('ses', 'readwrite', function (s) { s.delete(S.id); }).then(function () { return tx('fotos', 'readwrite', function (s) { ids.forEach(function (i) { s.delete(i); }); }); }); }
+function leerFoto(id) { return tx('fotos', 'readonly', function (s) { return s.get(id); }); }
+function guardarFoto(id, b) { return tx('fotos', 'readwrite', function (s) { s.put(b, id); }); }
+function borrarFoto(id) { return tx('fotos', 'readwrite', function (s) { s.delete(id); }); }
+
+/* Fotos: 1600 px, JPEG 0,8, con sello de fecha y hora */
+function comprimir(file) {
+  return new Promise(function (ok, mal) {
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function () {
+      var k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      var g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+      var fs = Math.round(c.width / 45), sello = fmt(Date.now()); g.font = fs + 'px sans-serif';
+      var tw = g.measureText(sello).width; g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(c.width - tw - 24, c.height - fs - 22, tw + 16, fs + 14);
+      g.fillStyle = '#fff'; g.fillText(sello, c.width - tw - 16, c.height - 16);
+      URL.revokeObjectURL(url); c.toBlob(function (b) { b ? ok(b) : mal(new Error('foto')); }, 'image/jpeg', 0.8);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); mal(new Error('No se pudo leer la foto')); };
+    img.src = url;
+  });
+}
+var URLS = {};
+function urlFoto(id) { if (URLS[id]) return Promise.resolve(URLS[id]); return leerFoto(id).then(function (b) { if (!b) return ''; URLS[id] = URL.createObjectURL(b); return URLS[id]; }); }
+function pintarFotos(r) { Array.prototype.forEach.call((r || document).querySelectorAll('img[data-foto]'), function (im) { urlFoto(im.getAttribute('data-foto')).then(function (u) { if (u) im.src = u; }); }); }
+
+/* ---------- Resultado de un piloto ---------- */
+function calcular(S, k) {
+  var sum = 0, max = 0, c = 0, n = 0, na = 0, pend = 0, crit = [], it = S.ev[k].items;
+  ITEMS.forEach(function (x) {
+    var e = (it[x.id] || {}).e;
+    if (e === 'c') { c++; sum += x.p; max += x.p; } else if (e === 'n') { n++; max += x.p; if (x.c) crit.push(x); } else if (e === 'na') na++; else pend++;
+  });
+  var pts = max ? Math.round(1000 * sum / max) / 10 : 0;
+  return { c: c, n: n, na: na, pend: pend, crit: crit, pts: pts, nota: S.nota, aprobado: !crit.length && !pend && pts >= S.nota };
+}
+function otro(k) { return k === 'A' ? 'B' : 'A'; }
+/* ---------- Prueba de destreza: vuelo sin pantalla con órdenes dictadas ---------- */
+var D = P.destreza;
+function sortearOrdenes(S, k) {
+  var otra = (S.ev[otro(k)].des || {}).ord || [], pick = function (tipo) { var o = D.ordenes[tipo], ops = o.filter(function (x) { return otra.indexOf(x) < 0; }); if (!ops.length) ops = o; return ops[Math.floor(Math.random() * ops.length)]; };
+  var med = D.tipos.filter(function (t) { return t[0] !== 'regreso'; }).map(function (t) { return pick(t[0]); });
+  for (var i = med.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = med[i]; med[i] = med[j]; med[j] = t; }
+  var ord = med.concat([pick('regreso'), D.final]);
+  S.ev[k].des = { ord: ord, c: ord.map(function () { return [0, 0, 0]; }), rep: ord.map(function () { return false; }), mir: 0, inter: false };
+}
+function destreza(S, k) {
+  var d = S.ev[k].des;
+  if (!d) return { pts: 0, max: 0, completa: false, ok: false };
+  var pts = 0, comp = true;
+  d.c.forEach(function (cr, i) { var p = cr.filter(function (x) { return x === 1; }).length; if (d.rep[i]) p = Math.max(0, p - 1); pts += p; if (cr.indexOf(0) >= 0) comp = false; });
+  var completa = comp || d.inter, ok = completa && !d.inter && pts >= D.minimo && d.mir <= D.miradas;
+  return { pts: pts, max: d.ord.length * 3, completa: completa, ok: ok, mir: d.mir, inter: d.inter };
+}
+/* la pregunta de destreza se responde sola cuando la prueba de órdenes termina */
+function aplicarDestreza(S, k) {
+  var it = ITEMS.filter(function (x) { return x.destreza; })[0], r = S.ev[k].items[it.id] || (S.ev[k].items[it.id] = {}), d = destreza(S, k);
+  r.e = d.completa ? (d.ok ? 'c' : 'n') : ''; r.t = Date.now();
+}
+function alturaH(S) { var o = parseFloat(S && S.obst); return Math.max(25, isNaN(o) ? 0 : Math.ceil(o) + 10); }
+function txt(S, s) { return String(s); }
+/* Tarjetas: P.tarjetas (escenarios vigentes); P.tarjetas_op8 solo para leer sesiones de EVAL-OP 8. Al asignarla se guarda una copia
+   en la sesión (S.ev[k].tarjeta), así una revisión posterior de los escenarios no cambia lo que se evaluó. */
+function buscarTarjeta(id) { return id ? P.tarjetas.concat(P.tarjetas_op8 || []).filter(function (x) { return x.id === id; })[0] : null; }
+function tarjetaDe(S, k) { var e = S.ev[k]; if (!e.tp) return null; return e.tarjeta && e.tarjeta.id === e.tp ? e.tarjeta : buscarTarjeta(e.tp); }
+function tarjetasDe(S, k) { return [tarjetaDe(S, k)].filter(Boolean); }
+function nivel(t) { return String(t.tiempo || '').split(':')[0].trim(); }
+function grupoT(t) { return t.clase === 'ejecutable en vuelo' ? (nivel(t) === 'alto' ? 'alto' : 'vuelo') : t.clase === 'ejecutable en tierra' ? 'tierra' : t.clase === 'solo verbal' ? 'verbal' : 'otro'; }
+var GRUPOS = [['vuelo', 'En vuelo'], ['alto', 'Tiempo alto'], ['tierra', 'En tierra'], ['verbal', 'Solo verbal'], ['otro', 'Sin clasificar']];
+function repTxt(r) { return r === 'MOR+VOR' ? 'MOR y VOR' : r || '–'; }
+/* reporte esperado de la tarjeta de su vuelo (las de EVAL-OP 8 lo traen por equivalencia con su escenario) */
+function repEsperado(S, k) { var t = tarjetaDe(S, k); return t ? t.reporte_esperado || 'VOR' : ''; }
+/* prueba de reportes (aparte del puntaje): el piloto hace el MOR/VOR en el recurso de EPM; aquí solo se registra si lo hizo */
+var REPX = { si: ['Sí lo hizo', 'ok'], no: ['No lo hizo', 'mal'], pend: ['Pendiente', 'na'] };
+function repDe(S, k) { return S.ev[k].reporte || {}; }
+function repHecho(S, k) { var e = repDe(S, k).e; return e === 'si' ? true : e === 'no' ? false : null; }
+function repEstado(S, k) { var e = repDe(S, k).e; return e === 'si' ? 'si' : e === 'no' ? 'no' : e === 'pend' ? 'pendiente' : 'sin_registro'; }
+var REPCSV = { si: 'Sí', no: 'No', pendiente: 'Pendiente', sin_registro: 'Sin registrar' };
+
+/* ---------- Prueba de reportes: registro por piloto (se puede marcar después de cerrar) ---------- */
+function reporteHtml(S, k) {
+  var r = repDe(S, k), esp = repEsperado(S, k), x = REPX[r.e];
+  return '<div class="tarj" data-repk="' + k + '" style="margin:10px 0"><b>Reporte de su contingencia</b> <span class="sub">(prueba de reportes, aparte del puntaje)</span><br>' +
+    '<span class="sub">Reporte esperado:</span> <b>' + (esp ? repTxt(esp) : 'sin tarjeta todavía') + '</b> <span class="sub">· lo hace ' + esc(nombre1(S[k])) + ' en el recurso de EPM</span><br>' +
+    '<span class="sub">¿Lo hizo?</span> <b class="' + (x ? x[1] : 'na') + '">' + (x ? x[0] : 'Sin registrar') + '</b>' + (r.fecha ? ' <span class="sub">· registrado ' + fmt(r.fecha) + '</span>' : '') +
+    (r.e ? ' · prueba de reportes: <b>' + (r.e === 'si' ? 'aprueba' : r.e === 'no' ? 'no aprueba' : 'pendiente') + '</b>' : '') +
+    (r.nota ? '<br><i class="solo-print">' + esc(r.nota) + '</i>' : '') +
+    '<div class="no-print"><div class="est" style="margin-top:8px"><button class="c' + (r.e === 'si' ? ' on' : '') + '" data-rep="si">Sí</button><button class="n' + (r.e === 'no' ? ' on' : '') + '" data-rep="no">No</button><button class="na' + (r.e === 'pend' ? ' on' : '') + '" data-rep="pend">Pendiente</button></div>' +
+    '<div class="extra"><textarea rows="1" data-repnota placeholder="Nota (opcional): número o fecha del reporte, qué faltó…">' + esc(r.nota || '') + '</textarea></div></div></div>';
+}
+function enlazarReportes(S, raiz) {
+  Array.prototype.forEach.call(raiz.querySelectorAll('[data-repk]'), function (c) {
+    var k = c.getAttribute('data-repk');
+    var listo = function () { if (S.estado === 'final') S.resumen = resumen(S); return guardarS(S); };
+    Array.prototype.forEach.call(c.querySelectorAll('[data-rep]'), function (b) {
+      b.onclick = function () {
+        var r = S.ev[k].reporte || (S.ev[k].reporte = {}); r.e = b.getAttribute('data-rep'); r.fecha = Date.now(); r.esperado = repEsperado(S, k);
+        listo(); c.outerHTML = reporteHtml(S, k); enlazarReportes(S, $('[data-repk="' + k + '"]').parentNode);
+      };
+    });
+    var ta = c.querySelector('[data-repnota]');
+    ta.oninput = function () { var r = S.ev[k].reporte || (S.ev[k].reporte = {}); r.nota = ta.value.trim(); clearTimeout(ta.t); ta.t = setTimeout(listo, 400); };
+  });
+}
+/* ---------- Resumen estable por piloto para el informe único (esquema evop-resumen-1) ---------- */
+function iso(t) {
+  if (!t) return null; var d = new Date(t), o = -d.getTimezoneOffset(), a = Math.abs(o);
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + (o < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
+}
+function resumen(S) {
+  return ['A', 'B'].map(function (k) {
+    var r = calcular(S, k), e = S.ev[k], d = destreza(S, k), t = tarjetaDe(S, k), rp = repDe(S, k), esp = repEsperado(S, k) || null, f = new Date(S.inicio);
+    return { nombre: S[k], rol: k === 'A' ? 'primero' : 'segundo', companero: S[otro(k)], fecha: f.getFullYear() + '-' + pad(f.getMonth() + 1) + '-' + pad(f.getDate()),
+      lugar: S.lugar || '', dron: S.dron || '', tipo: S.tipo || '', evaluador: S.evaluador || '', plantilla: S.plantilla || '',
+      version_app: S.version_app || (S.plantilla === 'OP-8' ? 'EVAL-OP 8' : null),
+      puntaje: r.pts, nota_minima: r.nota, aprobado_operacional: r.aprobado,
+      criticas_incumplidas: r.crit.map(function (x) { return { id: x.id, t: x.t }; }),
+      destreza: e.des ? { pts: d.pts, max: d.max, miradas: d.mir, intervencion: !!d.inter, aprobada: d.ok } : null,
+      contingencia: t ? { id: t.id, t: t.t, para: t.para, reporte_esperado: esp } : null,
+      reporte: { esperado: esp, hecho: repHecho(S, k), estado: repEstado(S, k), nota: rp.nota || '', fecha: iso(rp.fecha) },
+      obst: S.obst === '' || S.obst == null ? null : +S.obst, rth: e.rth === '' || e.rth == null ? null : +e.rth, observaciones: e.obs || '' };
+  });
+}
+
+/* ---------- Inicio ---------- */
+function inicio() {
+  $('#barra').style.display = 'none'; clearInterval(TICK);
+  todas().then(function (L) {
+    L.sort(function (a, b) { return b.actualizado - a.actualizado; });
+    var a = ajustes();
+    app.innerHTML = (a.evaluador ? '' : '<div class="msg info">Antes de empezar, escribe tu nombre en Ajustes: sale en los informes.</div>') +
+      '<div class="hoja"><h1>Pruebas operacionales</h1><p class="sub">Evaluador: <b>' + esc(a.evaluador || 'sin definir') + '</b> · nota mínima ' + notaMin() + ' · ' + L.length + ' sesión' + (L.length === 1 ? '' : 'es') + ' en este celular</p>' +
+      '<div class="acciones"><button class="btn pri" id="b-nueva">Nueva prueba (pareja)</button><button class="btn" id="b-exp">Exportar respaldo</button><button class="btn" id="b-csv">Resumen (CSV)</button>' +
+      '<label class="btn" style="display:inline-flex;align-items:center">Importar<input type="file" id="b-imp" accept=".json,application/json" hidden></label><button class="btn" id="b-guia">Guía de la prueba</button><button class="btn" id="b-aj">Ajustes</button></div></div>' +
+      '<div class="lista">' + (L.length ? L.map(function (S) {
+        var tag = function (k) { var r = calcular(S, k); return S.estado === 'final' ? '<span class="tag ' + (r.aprobado ? 'ok">' : 'mal">') + esc(nombre1(S[k])) + ' ' + r.pts + '</span>' : ''; };
+        var av = S.estado === 'final' ? tag('A') + ' ' + tag('B') : '<span class="tag bor">En curso</span>';
+        return '<button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(S.A) + ' y ' + esc(S.B) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>';
+      }).join('') : '<div class="hoja sub">Todavía no hay pruebas en este celular.</div>') + '</div>';
+    $('#b-nueva').onclick = nueva; $('#b-aj').onclick = pantallaAjustes; $('#b-guia').onclick = guia;
+    $('#b-exp').onclick = function () { exportar(L); }; $('#b-csv').onclick = function () { exportarCSV(L); };
+    $('#b-imp').onchange = function () { importar(this.files[0]); };
+    Array.prototype.forEach.call(app.querySelectorAll('.ev'), function (b) { b.onclick = function () { leerS(b.getAttribute('data-id')).then(function (S) { S.estado === 'final' ? informe(S) : evaluar(S, 'A'); }); }; });
+  });
+}
+function pantallaAjustes() {
+  var a = ajustes();
+  app.innerHTML = '<div class="hoja"><h1>Ajustes</h1><label class="campo">Nombre del evaluador<input id="a-ev" value="' + esc(a.evaluador || '') + '" placeholder="Ej.: Juan Pablo Castañeda – Jefe de Pilotos"></label>' +
+    '<label class="campo">Nota mínima para aprobar (0 a 100)<input id="a-nota" type="number" min="0" max="100" value="' + notaMin() + '"></label>' +
+    '<p class="sub">El puntaje de cada piloto es el porcentaje de ítems que cumple entre los que aplican. Si incumple un ítem crítico, no aprueba aunque el puntaje sea alto.</p>' +
+    '<div class="acciones"><button class="btn pri" id="a-ok">Guardar</button><button class="btn" id="a-no">Volver</button></div></div>';
+  $('#a-ok').onclick = function () { guardarAjustes({ evaluador: $('#a-ev').value.trim(), nota: Math.max(0, Math.min(100, +$('#a-nota').value || 0)) }); inicio(); };
+  $('#a-no').onclick = inicio;
+}
+function minVuelo() { var f = P.cronograma.filter(function (x) { return /^Vuelo 1/.test(x.t); })[0]; return f ? f.a - f.de : ''; }
+function guia() {
+  app.innerHTML = '<div class="hoja"><h1>Guía de la prueba operacional</h1>' +
+    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que empieza la prueba: tú explicas, ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las órdenes de destreza y das la contingencia.</p>' +
+    '<h2>Cronograma sugerido</h2><ul>' + P.cronograma.map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join('') + '</ul>' +
+    '<h2>Qué decirles al empezar</h2><ul><li>Tienen ' + P.minutos + ' minutos para preparar, volar los dos y cerrar; cada vuelo tiene ' + minVuelo() + ' minutos, de la lista de chequeo pre-vuelo al apagado.</li><li>Cada uno vuela una vez y es observador del otro.</li>' +
+    '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las órdenes que le dictes. En la mitad del vuelo le das una situación que debe atender como si fuera real.</li><li>Todo se registra en la bitácora como en una operación normal.</li></ul>' +
+    '<h2>Calificación</h2><p class="sub">' + ITEMS.length + ' preguntas de sí o no: las de 5 puntos son las más importantes y las demás valen 3; suman 100. Las críticas (C), si fallan, hacen que no apruebe aunque tenga buen puntaje. Nota mínima: ' + notaMin() + '.</p>' +
+    P.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.c ? ' · C' : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
+    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. La app sortea ' + (D.tipos.length + 1) + ' órdenes (una de cada tipo: ' + D.tipos.map(function (t) { return t[1].toLowerCase(); }).join(', ') + ', y el aterrizaje al final). En cada orden marcas: ' + D.criterios.join(', ').toLowerCase() + '. Cada criterio vale 1 punto; una orden repetida vale máximo 2. Aprueba con ' + D.minimo + ' de ' + ((D.tipos.length + 1) * 3) + ', máximo ' + D.miradas + ' miradas a la pantalla y sin intervención de seguridad.</p>' +
+    D.tipos.map(function (t) { return '<p style="margin:4px 0"><b>' + esc(t[1]) + ':</b> ' + D.ordenes[t[0]].map(esc).join(' · ') + '</p>'; }).join('') + '<p style="margin:4px 0"><b>Final:</b> ' + esc(D.final) + '</p>' +
+    '<h2>Tarjetas de contingencia (' + P.tarjetas.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Una por vuelo, en la mitad del vuelo. Se alterna: en un vuelo se le muestra al piloto y en el otro al observador, sin que el otro la vea. El sorteo solo usa las de «En vuelo» (caben en ' + P.minutos + ' minutos), no repite tarjeta en la prueba y no saca dos de la misma familia; las demás se eligen a mano con «o elegir…».</p>' +
+    '<h2>Prueba de reportes</h2><p class="sub">Cada piloto hace el reporte de la contingencia de su vuelo (MOR, VOR o los dos) en el recurso de EPM, por fuera de la app. Aquí solo registras si lo hizo: no suma ni resta a los 100 puntos y se puede marcar después de cerrar la prueba. Si el escenario decía «No requiere», igual se hace un VOR.</p>' +
+    GRUPOS.map(function (g) { var L = P.tarjetas.filter(function (t) { return grupoT(t) === g[0]; }); return L.length ? '<h2 style="font-size:15px">' + g[1] + ' (' + L.length + ')</h2>' + L.map(function (t) { return '<div class="tarj"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · se le muestra al <b>' + t.para + '</b> · reporte: <b>' + repTxt(t.reporte_esperado) + '</b><br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Tiempo:</span> ' + esc(t.tiempo) + '</div>'; }).join('') : ''; }).join('') +
+    '<div class="acciones"><button class="btn" id="g-vol">Volver</button></div></div>';
+  $('#g-vol').onclick = inicio;
+}
+
+/* ---------- Nueva prueba ---------- */
+function nueva() {
+  var sel = { A: '', B: '', tipo: 'VLOS' }, hechos = {};
+  var deHoy = PILOTOS.filter(function (p) { return (p.turnos || []).some(function (t) { return t.ini.slice(0, 10) === hoy(); }); })
+    .sort(function (a, b) { return a.turnos[0].ini.localeCompare(b.turnos[0].ini) || a.nombre.localeCompare(b.nombre); });
+  todas().then(function (L) { L.forEach(function (S) { hechos[S.A] = hechos[S.B] = S.estado === 'final' ? 'Evaluado' : 'En curso'; }); dibujar(null); });
+  function marca(n) { return hechos[n] ? ' <span class="tag ' + (hechos[n] === 'Evaluado' ? 'ok' : 'bor') + '">' + hechos[n] + '</span>' : ''; }
+  function boton(p, extra) { return '<button class="sugerido" data-p="' + esc(p.nombre) + '"><b>' + esc(p.nombre) + marca(p.nombre) + '</b>' + (extra ? '<span>' + extra + '</span>' : '') + '</button>'; }
+  function dibujar(filtro) {
+    var f = norm(filtro || ''), cual = !sel.A ? 'A' : !sel.B ? 'B' : '';
+    var lista = f ? PILOTOS.filter(function (p) { return norm(p.nombre).indexOf(f) >= 0 && p.nombre !== sel.A; }).slice(0, 12) : [];
+    var pares = [];
+    if (!sel.A) deHoy.forEach(function (p) { if (p.pareja && pares.some(function (x) { return x[1] === p.nombre; })) return; pares.push([p.nombre, p.pareja || '', p.turnos.filter(function (t) { return t.ini.slice(0, 10) === hoy(); })[0]]); });
+    app.innerHTML = '<div class="hoja"><h1>Nueva prueba</h1>' +
+      (sel.A ? '<div class="msg ok">Vuela primero: <b>' + esc(sel.A) + '</b></div>' : '') + (sel.B ? '<div class="msg ok">Vuela segundo: <b>' + esc(sel.B) + '</b></div>' : '') +
+      (sel.A && sel.B ? '<div class="acciones" style="margin-top:0"><button class="btn chico" id="n-inv">Invertir orden</button><button class="btn chico" id="n-camb">Cambiar pilotos</button></div>' : '') +
+      (cual ? '<label class="campo">' + (cual === 'A' ? 'Buscar al piloto que vuela primero' : 'Buscar a su compañero (vuela segundo)') + '<input id="n-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
+        lista.map(function (p) { return boton(p, p.pareja ? 'pareja: ' + esc(p.pareja) : ''); }).join('') +
+        (cual === 'A' && !f && pares.length ? '<p class="sub" style="margin:6px 0">Parejas programadas hoy:</p>' + pares.map(function (x) {
+          return '<button class="sugerido" data-par="' + esc(x[0]) + '|' + esc(x[1]) + '"><b>' + esc(x[0]) + (x[1] ? ' y ' + esc(x[1]) : '') + marca(x[0]) + '</b><span>' + x[2].ini.slice(11) + ' a ' + x[2].fin.slice(11) + '</span></button>'; }).join('') : '') : '') +
+      (!cual ? '<div class="campo">Tipo de operación<div class="pils">' + ['VLOS', 'EVLOS', 'BVLOS', 'Nocturno'].map(function (r) { return '<button class="pil' + (sel.tipo === r ? ' on' : '') + '" data-tipo="' + r + '">' + r + '</button>'; }).join('') + '</div></div>' +
+        '<label class="campo">Dron<select id="n-dron"><option value="">Elige el dron…</option>' + DRONES.map(function (d) { var v = d.dr + ' · ' + d.modelo; return '<option' + (sel.dron === v ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
+        '<p class="sub">Lugar: <b>' + esc(P.lugar) + '</b></p>' +
+        '<div class="msg info">Al tocar «Empezar», arranca el reloj de ' + P.minutos + ' minutos de la prueba.</div>' +
+        '<div class="acciones"><button class="btn pri" id="n-ok">Empezar la prueba</button><button class="btn" id="n-no">Cancelar</button></div>' : '<div class="acciones"><button class="btn" id="n-no">Cancelar</button></div>') + '</div>';
+    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { sel[cual] = b.getAttribute('data-p'); if (cual === 'A') { var p = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0]; if (p && p.pareja) sel.B = p.pareja; } dibujar(null); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('[data-par]'), function (b) { b.onclick = function () { var x = b.getAttribute('data-par').split('|'); sel.A = x[0]; sel.B = x[1]; dibujar(null); }; });
+    if ($('#n-bus')) { var i = $('#n-bus'); i.oninput = function () { dibujar(i.value); var j = $('#n-bus'); j.focus(); j.setSelectionRange(j.value.length, j.value.length); }; if (filtro != null) i.focus(); }
+    if ($('#n-inv')) $('#n-inv').onclick = function () { var t = sel.A; sel.A = sel.B; sel.B = t; dibujar(null); };
+    if ($('#n-camb')) $('#n-camb').onclick = function () { sel.A = sel.B = ''; dibujar(null); };
+    Array.prototype.forEach.call(app.querySelectorAll('[data-tipo]'), function (b) { b.onclick = function () { sel.dron = $('#n-dron').value; sel.tipo = b.getAttribute('data-tipo'); dibujar(null); }; });
+    if ($('#n-dron')) $('#n-dron').onchange = function () { sel.dron = this.value; };
+    $('#n-no').onclick = inicio;
+    if ($('#n-ok')) $('#n-ok').onclick = function () {
+      if (!$('#n-dron').value) { modal('<h2>Elige el dron</h2><p>Selecciona el dron con el que van a hacer la prueba.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
+      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value,
+        evaluador: ajustes().evaluador || '', nota: notaMin(), inicio: Date.now(), ambos: true, obst: '', obs: '', fotosGen: [],
+        ev: { A: { items: {}, rth: '', tp: '', to: '' }, B: { items: {}, rth: '', tp: '', to: '' } } };
+      if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (g) { S.gps = [+g.coords.latitude.toFixed(6), +g.coords.longitude.toFixed(6)]; guardarS(S); }, function () {}, { timeout: 15000 });
+      guardarS(S).then(function () { evaluar(S, 'A'); });
+    };
+  }
+}
+
+/* ---------- Evaluación ---------- */
+var ABIERTA = {}, TICK;
+function fase(S) {
+  var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0];
+  return f ? f.t.replace('{A}', nombre1(S.A)).replace('{B}', nombre1(S.B)) : 'Tiempo cumplido';
+}
+function barra(S, k) {
+  var r = calcular(S, k), b = $('#barra'), hechos = ITEMS.length - r.pend;
+  b.style.display = 'flex';
+  b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / ITEMS.length) + '%"></i></span></span>' +
+    '<span><b>' + (r.c + r.n ? r.pts : '–') + '</b></span>' + (r.crit.length ? '<span class="tag mal">' + r.crit.length + 'C</span>' : '');
+  var tick = function () {
+    var rest = S.inicio + P.minutos * 60000 - Date.now(), s = Math.round(Math.abs(rest) / 1000), el = $('#reloj');
+    if (!el) return;
+    el.textContent = (rest < 0 ? '+' : '') + Math.floor(s / 60) + ':' + pad(s % 60);
+    el.className = 't' + (rest < 0 ? ' fin' : rest < 5 * 60000 ? ' aviso' : '');
+    $('#fase').textContent = fase(S);
+  };
+  clearInterval(TICK); tick(); TICK = setInterval(tick, 1000);
+}
+function tituloSec(S, k, s) {
+  if (s.tipo === 'observador') return s.titulo + ' (vuelo de ' + nombre1(S[otro(k)]) + ')';
+  if (s.tipo === 'piloto') return s.titulo;
+  if (s.tipo === 'conjunta') return s.titulo + ' – juntos';
+  return s.titulo;
+}
+function evaluar(S, k) {
+  var ra = calcular(S, 'A'), rb = calcular(S, 'B');
+  app.innerHTML = '<div class="tabs"><button data-tab="A" class="' + (k === 'A' ? 'on' : '') + '">' + esc(nombre1(S.A)) + '<small>vuela 1.º · ' + (ITEMS.length - ra.pend) + '/' + ITEMS.length + '</small></button>' +
+    '<button data-tab="B" class="' + (k === 'B' ? 'on' : '') + '">' + esc(nombre1(S.B)) + '<small>vuela 2.º · ' + (ITEMS.length - rb.pend) + '/' + ITEMS.length + '</small></button></div>' +
+    '<div class="hoja" style="padding:10px 14px"><b>' + esc(S[k]) + '</b><span class="sub"> · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>' +
+    '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las secciones «juntos» se marcan para los dos</label></div>' +
+    P.secciones.map(function (s) {
+      var x = contar(S, k, s);
+      return '<div class="sec' + (ABIERTA[s.id] ? ' abierta' : '') + '" id="sec-' + s.id + '"><button class="cab" data-sec="' + s.id + '">' + esc(tituloSec(S, k, s)) + '<span class="cnt">' + x + '</span></button><div class="cuerpo">' +
+        
+        s.items.map(function (it) { return itemHtml(S, k, it); }).join('') + '</div></div>';
+    }).join('') +
+    '<div class="hoja" id="rep-ev">' + reporteHtml(S, k) + '</div>' +
+    '<div class="hoja"><h2>Observaciones de ' + esc(nombre1(S[k])) + '</h2><textarea id="obs-k" rows="3" placeholder="Fortalezas, aspectos por mejorar…">' + esc(S.ev[k].obs || '') + '</textarea>' +
+    '<h2 style="margin-top:12px">Observaciones generales de la prueba</h2><textarea id="obs" rows="2">' + esc(S.obs || '') + '</textarea>' +
+    '<div class="fotos" id="fg">' + (S.fotosGen || []).map(fotoHtml).join('') + '</div><div class="extra"><label class="camara">📷 Foto general<input type="file" accept="image/*" capture="environment" hidden id="foto-gen"></label></div></div>' +
+    '<div class="hoja"><div class="acciones" style="margin-top:0"><button class="btn pri" id="ev-fin">Terminar y ver resultados</button><button class="btn" id="ev-sal">Guardar y salir</button><button class="btn peligro" id="ev-bor">Borrar</button></div>' +
+    '<p class="sub">Todo se guarda automáticamente en este celular, aunque no haya señal.</p></div>';
+  barra(S, k); pintarFotos(app);
+  Array.prototype.forEach.call(app.querySelectorAll('[data-tab]'), function (b) { b.onclick = function () { evaluar(S, b.getAttribute('data-tab')); window.scrollTo(0, 0); }; });
+  $('#ambos').onchange = function () { S.ambos = this.checked; guardarS(S); };
+  Array.prototype.forEach.call(app.querySelectorAll('[data-sec]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-sec'); ABIERTA[id] = !ABIERTA[id]; $('#sec-' + id).classList.toggle('abierta'); }; });
+  ITEMS.forEach(function (it) { enlazarItem(S, k, it.id); });
+  var dl = function (el, fn) { el.oninput = function () { fn(el.value); clearTimeout(el.t); el.t = setTimeout(function () { guardarS(S); }, 400); }; };
+  dl($('#obs-k'), function (v) { S.ev[k].obs = v; }); dl($('#obs'), function (v) { S.obs = v; });
+  $('#foto-gen').onchange = function () { agregarFoto(S, k, null, this.files[0]); };
+  enlazarFotos(S, k, $('#fg')); enlazarReportes(S, $('#rep-ev'));
+  $('#ev-sal').onclick = function () { guardarS(S).then(inicio); };
+  $('#ev-bor').onclick = function () {
+    modal('<h2>¿Borrar esta prueba?</h2><p>Se borran las evaluaciones de los dos pilotos y sus fotos. No se puede deshacer.</p><div class="acciones"><button class="btn peligro" id="m-si">Borrar</button><button class="btn" id="m-no">Cancelar</button></div>');
+    $('#m-si').onclick = function () { cerrar(); borrarS(S).then(inicio); }; $('#m-no').onclick = cerrar;
+  };
+  $('#ev-fin').onclick = function () { terminar(S, k); };
+}
+function contar(S, k, s) {
+  var it = S.ev[k].items, h = s.items.filter(function (i) { return (it[i.id] || {}).e; }).length, m = s.items.filter(function (i) { return (it[i.id] || {}).e === 'n'; }).length;
+  return h + '/' + s.items.length + (m ? ' · <b style="color:var(--rojo)">' + m + ' no</b>' : '');
+}
+function fotoHtml(id) { return '<span class="f"><img data-foto="' + id + '" alt="Foto"><button class="x" data-borra="' + id + '" aria-label="Borrar foto">×</button></span>'; }
+function datoHtml(S, k, it) {
+  if (it.dato === 'obst') return '<div class="dato">Altura del obstáculo más alto <input type="number" inputmode="decimal" data-obst value="' + esc(S.obst) + '"> m</div>';
+  if (it.dato === 'rth') {
+    var aviso = S.obst !== '' && S.ev[k].rth !== '' && +S.ev[k].rth <= +S.obst ? '<span class="tag mal">No libra el obstáculo de ' + S.obst + ' m</span>' : '';
+    return '<div class="dato">Altura de RTH configurada <input type="number" inputmode="decimal" data-rth value="' + esc(S.ev[k].rth) + '"> m ' + aviso + '</div>';
+  }
+  return '';
+}
+function itemHtml(S, k, it) {
+  var r = S.ev[k].items[it.id] || {};
+  var cab = '<div class="tx"><small>' + it.id + '</small>' + esc(it.t) + ' <span class="sub">(' + it.p + ' pts)</span>' + (it.c ? ' <span class="tag crit">Crítico</span>' : '') + '</div>';
+  var est = it.destreza ? '<div class="sub" style="margin:6px 0">Se responde sola al terminar las órdenes: <b>' + (r.e === 'c' ? 'Sí' : r.e === 'n' ? 'No' : 'pendiente') + '</b></div>' :
+    '<div class="est"><button class="c' + (r.e === 'c' ? ' on' : '') + '" data-est="c">Sí</button><button class="n' + (r.e === 'n' ? ' on' : '') + '" data-est="n">No</button><button class="na' + (r.e === 'na' ? ' on' : '') + '" data-est="na">No aplica</button></div>';
+  return '<div class="it" id="it-' + it.id + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k) : '') + est +
+    datoHtml(S, k, it) +
+    '<div class="extra"><textarea rows="1" data-nota placeholder="Anotación' + (r.e === 'n' ? ' (qué falló)' : '') + '">' + esc(r.nota || '') + '</textarea>' +
+    '<label class="camara">📷<input type="file" accept="image/*" capture="environment" hidden data-cam></label></div>' +
+    '<div class="fotos">' + (r.fotos || []).map(fotoHtml).join('') + '</div></div>';
+}
+function destrezaHtml(S, k) {
+  var d = S.ev[k].des, x = destreza(S, k);
+  if (!d) return '<div class="tarj" style="border-color:var(--verde);background:var(--verde-s)">Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las órdenes antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear órdenes</button></div></div>';
+  var chip = function (i, j, v) { return '<button class="pil" data-dc="' + i + ',' + j + '" style="padding:6px 10px;font-size:13px;min-height:44px' + (v === 1 ? ';background:var(--verde-s);border-color:var(--verde);color:var(--verde-osc)' : v === 2 ? ';background:var(--rojo-s);border-color:var(--rojo);color:var(--rojo)' : '') + '">' + (v === 1 ? '✓ ' : v === 2 ? '✗ ' : '') + ['Lado correcto', 'Suave', 'Terminó bien'][j] + '</button>'; };
+  return '<div class="tarj" style="border-color:var(--verde);background:var(--verde-s)"><b>Destreza: ' + x.pts + ' de ' + x.max + '</b> · miradas a la pantalla: ' + d.mir +
+    (x.completa ? ' · <b style="color:' + (x.ok ? 'var(--verde)' : 'var(--rojo)') + '">' + (x.ok ? 'aprobada' : 'no aprobada') + '</b>' : '') +
+    '<div class="sub" style="margin:4px 0 8px">Lee cada orden en voz alta. Toca cada criterio: una vez = cumple, dos = no cumple. Aprueba con ' + D.minimo + ' de ' + x.max + ', máximo ' + D.miradas + ' miradas y sin intervención.</div>' +
+    d.ord.map(function (o, i) {
+      return '<div style="border-top:1px solid var(--linea);padding:8px 0"><div><b>' + (i + 1) + '.</b> ' + esc(o) + (d.rep[i] ? ' <span class="tag bor">repetida</span>' : '') + '</div><div class="pils" style="margin-top:6px">' +
+        d.c[i].map(function (v, j) { return chip(i, j, v); }).join('') + '<button class="pil" data-dr="' + i + '" style="padding:6px 10px;font-size:13px;min-height:44px">' + (d.rep[i] ? 'Quitar repetición' : 'Repetir') + '</button></div></div>';
+    }).join('') +
+    '<div class="acciones"><button class="btn chico" id="d-mir">👁 Miró la pantalla (' + d.mir + ')</button><button class="btn chico" id="d-mirm">−1</button>' +
+    '<button class="btn chico peligro" id="d-int">' + (d.inter ? 'Quitar intervención' : 'Intervención de seguridad') + '</button><button class="btn chico" id="d-sort">Sortear otras</button></div></div>';
+}
+function quienes(S, k, it) { return it.tipo === 'conjunta' && S.ambos ? ['A', 'B'] : [k]; }
+function enlazarItem(S, k, id) {
+  var it = ITEMS.filter(function (x) { return x.id === id; })[0], cont = $('#it-' + id);
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-est]'), function (b) {
+    b.onclick = function () {
+      var v = b.getAttribute('data-est'), cur = (S.ev[k].items[id] || {}).e, nuevo = cur === v ? '' : v;
+      quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); r.e = nuevo; r.t = Date.now(); });
+      guardarS(S); refrescar(S, k, id);
+    };
+  });
+  if (it.destreza) enlazarDestreza(S, k, id, cont);
+  if (it.tarjeta) enlazarTarjeta(S, k);
+  var ta = cont.querySelector('[data-nota]');
+  ta.oninput = function () {
+    quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); r.nota = ta.value.trim(); });
+    clearTimeout(ta.t); ta.t = setTimeout(function () { guardarS(S); }, 400);
+  };
+  cont.querySelector('[data-cam]').onchange = function () { agregarFoto(S, k, id, this.files[0]); };
+  var ob = cont.querySelector('[data-obst]'); if (ob) { ob.oninput = function () { S.obst = ob.value; guardarS(S); }; ob.onchange = function () { if (ob.dataset.listo) return; ob.dataset.listo = '1'; evaluar(S, k); var y = $('#it-6'); if (y) y.scrollIntoView({ block: 'center' }); }; }
+  var rt = cont.querySelector('[data-rth]'); if (rt) rt.onchange = function () { if (S.ev[k].rth === rt.value) return; S.ev[k].rth = rt.value; guardarS(S); refrescar(S, k, id); };
+  enlazarFotos(S, k, cont);
+}
+function refrescar(S, k, id) {
+  var it = ITEMS.filter(function (x) { return x.id === id; })[0];
+  $('#it-' + id).outerHTML = itemHtml(S, k, it); enlazarItem(S, k, id); pintarFotos($('#it-' + id));
+  $('#sec-' + it.s + ' .cnt').innerHTML = contar(S, k, SEC[it.s]); barra(S, k);
+  var tabs = app.querySelectorAll('[data-tab] small');
+  ['A', 'B'].forEach(function (q, i) { tabs[i].textContent = 'vuela ' + (i + 1) + '.º · ' + (ITEMS.length - calcular(S, q).pend) + '/' + ITEMS.length; });
+}
+function enlazarDestreza(S, k, id, cont) {
+  var listo = function () { aplicarDestreza(S, k); guardarS(S); refrescar(S, k, id); };
+  var so = cont.querySelector('#d-sort');
+  if (so) so.onclick = function () { if (S.ev[k].des && !confirm('¿Sortear otras órdenes? Se borra lo marcado.')) return; sortearOrdenes(S, k); listo(); };
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-dc]'), function (b) { b.onclick = function () { var p = b.getAttribute('data-dc').split(','), c = S.ev[k].des.c[+p[0]]; c[+p[1]] = (c[+p[1]] + 1) % 3; listo(); }; });
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-dr]'), function (b) { b.onclick = function () { var i = +b.getAttribute('data-dr'), d = S.ev[k].des; d.rep[i] = !d.rep[i]; if (d.rep[i]) d.c[i] = [0, 0, 0]; listo(); }; });
+  var g = function (sel, fn) { var e = cont.querySelector(sel); if (e) e.onclick = function () { fn(S.ev[k].des); listo(); }; };
+  g('#d-mir', function (d) { d.mir++; }); g('#d-mirm', function (d) { d.mir = Math.max(0, d.mir - 1); }); g('#d-int', function (d) { d.inter = !d.inter; });
+}
+function quienTarjeta(S, k, t) { return t.para === 'observador' ? S[otro(k)] : S[k]; }
+function tarjetaHtml(S, k) {
+  var t = tarjetaDe(S, k), q = t ? quienTarjeta(S, k, t) : '';
+  return '<div id="tarj"><div class="tarj">' + (t ? '<b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · para el <b>' + t.para + '</b>: ' + esc(q) + '<br><span class="sub">Situación:</span> ' + esc(t.situacion) +
+      '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Reporte esperado:</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span>' +
+      (t.tiempo ? '<br><span class="sub">' + esc(t.clase) + ' · tiempo ' + esc(t.tiempo) + '</span>' : '') : '<span class="sub">Sin tarjeta todavía.</span>') +
+    '<div class="acciones">' + (t ? '<button class="btn pri chico" data-mos="tp">Mostrar a ' + esc(nombre1(q)) + '</button>' : '') +
+    '<button class="btn chico" data-sort="tp">' + (t ? 'Sortear otra' : 'Sortear tarjeta') + '</button>' +
+    '<select class="btn chico" data-elige="tp"><option value="">o elegir…</option>' + GRUPOS.map(function (g) {
+      var L = P.tarjetas.filter(function (x) { return grupoT(x) === g[0]; });
+      return L.length ? '<optgroup label="' + g[1] + '">' + L.map(function (x) { return '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.id + ' · ' + x.t + ' (' + x.para + ')') + '</option>'; }).join('') + '</optgroup>' : '';
+    }).join('') + '</select></div></div></div>';
+}
+function enlazarTarjeta(S, k) {
+  var poner = function (id) { var t = buscarTarjeta(id); S.ev[k].tp = id; S.ev[k].tarjeta = t ? JSON.parse(JSON.stringify(t)) : null; guardarS(S); $('#tarj').outerHTML = tarjetaHtml(S, k); enlazarTarjeta(S, k); if ($('#rep-ev')) { $('#rep-ev').innerHTML = reporteHtml(S, k); enlazarReportes(S, $('#rep-ev')); } };
+  if (!$('[data-sort]')) return;
+  $('[data-sort]').onclick = function () {
+    var otraT = tarjetaDe(S, otro(k));
+    /* solo las ejecutables en vuelo que no son de tiempo alto (caben en la prueba); sin repetir en la sesión */
+    var ops = P.tarjetas.filter(function (x) { return grupoT(x) === 'vuelo' && x.id !== S.ev[otro(k)].tp && x.id !== S.ev[k].tp; });
+    /* sin dos de la misma familia en la sesión */
+    var fam = otraT && otraT.familias || [], sf = ops.filter(function (x) { return !(x.familias || []).some(function (f) { return fam.indexOf(f) >= 0; }); });
+    if (sf.length) ops = sf;
+    /* se alterna: si en el otro vuelo la tarjeta fue para el piloto, en este va para el observador (y al revés) */
+    var alt = otraT ? ops.filter(function (x) { return x.para !== otraT.para; }) : ops;
+    if (alt.length) ops = alt;
+    poner(ops[Math.floor(Math.random() * ops.length)].id);
+  };
+  $('[data-elige]').onchange = function () { if (this.value) poner(this.value); };
+  if ($('[data-mos]')) $('[data-mos]').onclick = function () {
+    var t = tarjetaDe(S, k), q = quienTarjeta(S, k, t);
+    var m = $('#mostrar'); m.innerHTML = '<div class="p">' + esc(nombre1(q)) + ' (' + t.para + ')</div><div class="q">' + esc(t.situacion) + '</div><div class="c">Toca la pantalla para cerrar</div>';
+    m.classList.add('on'); m.onclick = function () { m.classList.remove('on'); };
+  };
+}
+function enlazarFotos(S, k, raiz) {
+  Array.prototype.forEach.call(raiz.querySelectorAll('[data-borra]'), function (b) {
+    b.onclick = function (ev) {
+      ev.stopPropagation(); var fid = b.getAttribute('data-borra');
+      modal('<h2>¿Borrar la foto?</h2><div class="acciones"><button class="btn peligro" id="m-si">Borrar</button><button class="btn" id="m-no">Cancelar</button></div>');
+      $('#m-no').onclick = cerrar;
+      $('#m-si').onclick = function () {
+        cerrar(); S.fotosGen = (S.fotosGen || []).filter(function (x) { return x !== fid; });
+        ['A', 'B'].forEach(function (q) { var it = S.ev[q].items; Object.keys(it).forEach(function (i) { if (it[i].fotos) it[i].fotos = it[i].fotos.filter(function (x) { return x !== fid; }); }); });
+        borrarFoto(fid).then(function () { return guardarS(S); }).then(function () { b.parentNode.remove(); });
+      };
+    };
+  });
+  Array.prototype.forEach.call(raiz.querySelectorAll('img[data-foto]'), function (im) { im.onclick = function () { $('#visor-img').src = im.src; $('#visor').classList.add('on'); }; });
+}
+function agregarFoto(S, k, id, file) {
+  if (!file) return;
+  comprimir(file).then(function (blob) {
+    var fid = 'f' + uid();
+    return guardarFoto(fid, blob).then(function () {
+      if (id) { var it = ITEMS.filter(function (x) { return x.id === id; })[0]; quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); (r.fotos = r.fotos || []).push(fid); }); }
+      else (S.fotosGen = S.fotosGen || []).push(fid);
+      return guardarS(S);
+    }).then(function () { var c = id ? $('#it-' + id + ' .fotos') : $('#fg'); c.insertAdjacentHTML('beforeend', fotoHtml(fid)); pintarFotos(c); enlazarFotos(S, k, c); });
+  }).catch(function (er) { modal('<h2>No se pudo guardar la foto</h2><p>' + esc(er.message) + '</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; });
+}
+function terminar(S, k) {
+  guardarS(S);
+  var falt = [];
+  ['A', 'B'].forEach(function (q) { ITEMS.forEach(function (it) { if (!(S.ev[q].items[it.id] || {}).e) falt.push([q, it]); }); });
+  if (falt.length) {
+    modal('<h2>Faltan ' + falt.length + ' ítems por evaluar</h2><p>Responde cada pregunta (sí, no o no aplica) para los dos pilotos; la de destreza se responde al terminar las órdenes.</p><p class="sub">' +
+      falt.slice(0, 8).map(function (x) { return esc(nombre1(S[x[0]])) + ' – ' + x[1].id + ' ' + esc(x[1].t); }).join('<br>') + (falt.length > 8 ? '<br>…' : '') + '</p>' +
+      '<div class="acciones"><button class="btn pri" id="m-ir">Ir al primero</button><button class="btn" id="m-no">Cerrar</button></div>');
+    $('#m-no').onclick = cerrar;
+    $('#m-ir').onclick = function () { cerrar(); var q = falt[0][0], it = falt[0][1]; ABIERTA[it.s] = true; evaluar(S, q); setTimeout(function () { $('#it-' + it.id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50); };
+    return;
+  }
+  var res = ['A', 'B'].map(function (q) { var r = calcular(S, q); return '<p><b>' + esc(S[q]) + ':</b> <span style="font-size:22px;font-weight:bold;color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + r.pts + ' – ' + (r.aprobado ? 'aprueba' : 'no aprueba') + '</span>' + (r.crit.length ? '<br><span class="sub">Críticos incumplidos: ' + r.crit.map(function (x) { return x.id; }).join(', ') + '</span>' : '') + '</p>'; }).join('');
+  modal('<h2>Resultados</h2>' + res + '<p class="sub">Nota mínima: ' + S.nota + '. Al cerrar, la prueba queda finalizada y ya no se puede editar; solo el registro del reporte de cada piloto (se puede marcar después).</p><div class="acciones"><button class="btn pri" id="m-cer">Cerrar la prueba</button><button class="btn" id="m-no">Seguir editando</button></div>');
+  $('#m-no').onclick = cerrar;
+  $('#m-cer').onclick = function () {
+    cerrar(); S.estado = 'final'; S.fin = Date.now();
+    S.resultado = {}; ['A', 'B'].forEach(function (q) { var r = calcular(S, q); S.resultado[q] = { pts: r.pts, aprobado: r.aprobado, crit: r.crit.map(function (x) { return x.id; }) }; });
+    S.resumen = resumen(S);
+    guardarS(S).then(function () { informe(S); });
+  };
+}
+$('#visor').onclick = function () { this.classList.remove('on'); };
+function modal(h) { $('#modal-c').innerHTML = h; $('#modal').classList.add('on'); }
+function cerrar() { $('#modal').classList.remove('on'); }
+
+/* ---------- Informe (una hoja por piloto; se imprime o se guarda en PDF) ---------- */
+var ESTX = { c: ['Sí', 'ok'], n: ['No', 'mal'], na: ['No aplica', 'na'] };
+function informePiloto(S, k, primero) {
+  var r = calcular(S, k), e = S.ev[k], dur = S.fin ? Math.round((S.fin - S.inicio) / 60000) : '';
+  return '<div class="hoja inf' + (primero ? '' : ' salto') + '"><h1>Prueba operacional – Pilotos UAS</h1>' +
+    '<table><tr><th>Piloto evaluado</th><td>' + esc(S[k]) + '</td><th>Vuela</th><td>' + (k === 'A' ? 'Primero' : 'Segundo') + '</td></tr>' +
+    '<tr><th>Compañero (observador)</th><td>' + esc(S[otro(k)]) + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
+    '<tr><th>Lugar</th><td>' + esc(S.lugar || '–') + (S.gps ? '<br><span class="sub">' + S.gps.join(', ') + '</span>' : '') + '</td><th>Dron</th><td>' + esc(S.dron || '–') + '</td></tr>' +
+    '<tr><th>Inicio</th><td>' + fmt(S.inicio) + '</td><th>Duración</th><td>' + (dur !== '' ? dur + ' min' : '–') + '</td></tr>' +
+    '<tr><th>Obstáculo más alto</th><td>' + (S.obst !== '' ? S.obst + ' m' : '–') + '</td><th>Altura de RTH</th><td>' + (e.rth !== '' ? e.rth + ' m' : '–') + '</td></tr>' +
+    '<tr><th>Evaluador</th><td>' + esc(S.evaluador || '–') + '</td><th>Lista</th><td>' + esc(S.plantilla) + '</td></tr></table>' +
+    '<div class="res" style="margin:14px 0 6px"><span class="pts' + (r.aprobado ? '' : ' no') + '">' + r.pts + '</span><span class="ver" style="color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + (r.aprobado ? 'Aprueba' : 'No aprueba') + '</span>' +
+    '<span class="sub">' + r.c + ' sí · ' + r.n + ' no · ' + r.na + ' no aplica · nota mínima ' + r.nota + '</span></div>' +
+    (r.crit.length ? '<div class="msg err">Incumplió ítems críticos: ' + r.crit.map(function (it) { return it.id + ' – ' + esc(it.t); }).join('; ') + '.</div>' : '') +
+    tarjetasDe(S, k).map(function (t) { return '<div class="tarj" style="margin:10px 0"><b>Contingencia en su vuelo: ' + esc(t.id) + ' · ' + esc(t.t) + '</b> (se le mostró al ' + t.para + ': ' + esc(t.para === 'observador' ? S[otro(k)] : S[k]) + ')<br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Reporte esperado:</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span></div>'; }).join('') +
+    reporteHtml(S, k) +
+    (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas' + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
+      d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b>' + (d.rep[i] ? ' (repetida)' : '') + d.c[i].map(function (v, j) { return v === 2 ? ', falló: ' + D.criterios[j].toLowerCase() : ''; }).join('') + '</span>'; }).join('') + '</div>'; })() +
+    '<div class="secs">' + P.secciones.map(function (s) {
+      return '<h2 style="margin-top:14px">' + s.id + '. ' + esc(tituloSec(S, k, s)) + '</h2><table><tr><th style="width:34px">#</th><th>Pregunta (puntos)</th><th style="width:80px">Respuesta</th></tr>' +
+        s.items.map(function (it) {
+          var x = e.items[it.id] || {}, st = ESTX[x.e] || ['Sin evaluar', 'na'];
+          return '<tr><td>' + it.id + (it.c ? '<br><span class="tag crit">C</span>' : '') + '</td><td>' + esc(it.t) + ' <span class="sub">(' + it.p + ')</span>' + (x.nota ? '<br><i>' + esc(x.nota) + '</i>' : '') +
+            ((x.fotos || []).length ? '<div class="fotos">' + x.fotos.map(function (f) { return '<img data-foto="' + f + '" alt="Foto">'; }).join('') + '</div>' : '') + '</td><td class="' + st[1] + '">' + st[0] + '</td></tr>';
+        }).join('') + '</table>';
+    }).join('') + '</div>' +
+    '<h2 style="margin-top:14px">Observaciones</h2><p>' + (e.obs ? esc(e.obs).replace(/\n/g, '<br>') : '–') + '</p>' +
+    (S.obs ? '<p class="sub">Generales de la prueba: ' + esc(S.obs).replace(/\n/g, '<br>') + '</p>' : '') +
+    ((S.fotosGen || []).length ? '<div class="fotos">' + S.fotosGen.map(function (f) { return '<img data-foto="' + f + '" alt="Foto">'; }).join('') + '</div>' : '') +
+    '<table class="firmas" style="margin-top:30px"><tr><td style="height:70px;width:50%">Firma del evaluador</td><td>Firma del piloto evaluado</td></tr></table></div>';
+}
+function informe(S) {
+  $('#barra').style.display = 'none'; clearInterval(TICK);
+  app.innerHTML = '<div class="hoja no-print"><div class="acciones" style="margin:0"><button class="btn pri" id="i-pdf">Imprimir / guardar PDF</button><button class="btn" id="i-comp">Compartir respaldo</button><button class="btn" id="i-vol">Volver</button></div></div>' +
+    informePiloto(S, 'A', true) + informePiloto(S, 'B', false);
+  pintarFotos(app); enlazarReportes(S, app);
+  $('#i-pdf').onclick = function () { document.title = 'Prueba operacional – ' + S.A + ' y ' + S.B; window.print(); document.title = 'Evaluación operacional – Pilotos UAS EPM'; };
+  $('#i-vol').onclick = inicio; $('#i-comp').onclick = function () { exportar([S]); };
+}
+
+/* ---------- Respaldo y resumen ---------- */
+function blobADataURL(b) { return new Promise(function (ok) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.readAsDataURL(b); }); }
+function compartir(file) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) navigator.share({ files: [file], title: file.name }).catch(function () {});
+  else { var a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 500); }
+}
+function exportar(L) {
+  if (!L.length) { modal('<h2>No hay pruebas</h2><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
+  var fotos = {}, ids = []; L.forEach(function (S) { ids = ids.concat(fotosDe(S)); });
+  Promise.all(ids.map(function (id) { return leerFoto(id).then(function (b) { return b ? blobADataURL(b).then(function (u) { fotos[id] = u; }) : null; }); })).then(function () {
+    var nom = 'pruebas_operacionales_' + hoy() + (L.length === 1 ? '_' + norm(L[0].A + ' ' + L[0].B).replace(/[^a-z0-9]+/g, '_') : '') + '.json';
+    /* el resumen por piloto se recalcula al exportar (también para sesiones de EVAL-OP 8 importadas) */
+    var ses = L.map(function (S) { return S.estado === 'final' ? Object.assign({}, S, { resumen: resumen(S) }) : S; });
+    compartir(new File([JSON.stringify({ app: 'evop3', esquema: 'evop-resumen-1', version: VERSION, exportado: Date.now(), sesiones: ses, fotos: fotos })], nom, { type: 'application/json' }));
+  });
+}
+function importar(f) {
+  if (!f) return;
+  var fr = new FileReader();
+  fr.onload = function () {
+    var d; try { d = JSON.parse(fr.result); } catch (e) { d = null; }
+    if (!d || d.app !== 'evop3') { modal('<h2>Archivo no válido</h2><p>No es un respaldo de esta versión de la app.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
+    var n = 0;
+    Promise.all(Object.keys(d.fotos || {}).map(function (id) { return fetch(d.fotos[id]).then(function (r) { return r.blob(); }).then(function (b) { return guardarFoto(id, b); }); }))
+      .then(function () { return Promise.all(d.sesiones.map(function (S) { return leerS(S.id).then(function (y) { if (!y || (S.actualizado || 0) > (y.actualizado || 0)) { n++; if (S.estado === 'final' && S.ev && S.ev.A && S.ev.B) S.resumen = resumen(S); return tx('ses', 'readwrite', function (s) { s.put(S); }); } }); })); })
+      .then(function () { modal('<h2>Respaldo importado</h2><p>' + n + ' prueba' + (n === 1 ? '' : 's') + ' agregada' + (n === 1 ? '' : 's') + ' o actualizada' + (n === 1 ? '' : 's') + '.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = function () { cerrar(); inicio(); }; });
+  };
+  fr.readAsText(f);
+}
+function exportarCSV(L) {
+  var cab = ['Piloto', 'Vuela', 'Observador', 'Tipo', 'Lugar', 'Dron', 'Evaluador', 'Inicio', 'Duración (min)', 'Estado', 'Puntaje', 'Resultado', 'Críticas incumplidas', 'Sí', 'No', 'No aplica', 'Obstáculo (m)', 'RTH (m)', 'Destreza (de 24)', 'Miradas a la pantalla', 'Intervención', 'Contingencia de su vuelo', 'Reporte esperado', 'Reporte hecho', 'Fecha del registro del reporte', 'Nota del reporte', 'Observaciones'].concat(ITEMS.map(function (it) { return 'P' + it.id; }));
+  var filas = [cab];
+  L.forEach(function (S) {
+    ['A', 'B'].forEach(function (k) {
+      var r = calcular(S, k), ts = tarjetasDe(S, k);
+      filas.push([S[k], k === 'A' ? '1.º' : '2.º', S[otro(k)], S.tipo, S.lugar, S.dron, S.evaluador, fmt(S.inicio), S.fin ? Math.round((S.fin - S.inicio) / 60000) : '', S.estado === 'final' ? 'Finalizada' : 'En curso',
+        r.pts, S.estado === 'final' ? (r.aprobado ? 'Aprueba' : 'No aprueba') : '', r.crit.map(function (x) { return x.id; }).join(' '), r.c, r.n, r.na, S.obst, S.ev[k].rth, S.ev[k].des ? destreza(S, k).pts : '', S.ev[k].des ? S.ev[k].des.mir : '', S.ev[k].des && S.ev[k].des.inter ? 'Sí' : '', ts.map(function (t) { return t.t + ' (' + t.para + ')'; }).join(' / '), repTxt(repEsperado(S, k)).replace('–', ''), REPCSV[repEstado(S, k)], fmt(repDe(S, k).fecha), repDe(S, k).nota || '', S.ev[k].obs || '']
+        .concat(ITEMS.map(function (it) { var x = (S.ev[k].items[it.id] || {}).e; return x === 'c' ? it.p : x === 'n' ? 0 : x === 'na' ? 'NA' : ''; })));
+    });
+  });
+  var txt = '\ufeff' + filas.map(function (f) { return f.map(function (c) { c = String(c == null ? '' : c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';'); }).join('\r\n');
+  compartir(new File([txt], 'resumen_pruebas_operacionales_' + hoy() + '.csv', { type: 'text/csv' }));
+}
+
+/* ---------- Arranque ---------- */
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+abrir().then(inicio).catch(function (e) { app.innerHTML = '<div class="msg err">No se pudo abrir el almacenamiento del celular: ' + esc(e && e.message) + '</div>'; });
+</script>
+</body>
+</html>
