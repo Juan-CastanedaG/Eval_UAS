@@ -146,6 +146,20 @@ textarea{width:100%;resize:vertical}
   .inf .ord{display:inline} .inf .ord+.ord:before{content:" · "}
 }
 .ord{display:block}
+.orden{border-top:1px solid var(--linea);padding:8px 0}
+.ord-tx{display:block;width:100%;text-align:left;border:1.5px dashed var(--verde);background:#fff;border-radius:9px;padding:9px 10px;min-height:44px;margin-bottom:6px}
+.crono{float:right;font-weight:bold;color:var(--verde-osc);font-variant-numeric:tabular-nums} .crono.fin{color:var(--rojo)}
+.nota3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.nota3 button{border:1.5px solid var(--linea);background:#fff;border-radius:10px;padding:10px 4px;font-weight:bold;font-size:15px;min-height:54px;line-height:1.15}
+.nota3 button small{display:block;font-weight:normal;font-size:12px}
+.nota3 .b.on{background:var(--verde);border-color:var(--verde);color:#fff} .nota3 .r.on{background:var(--ambar);border-color:var(--ambar);color:#fff} .nota3 .n.on{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.pasos{margin:10px 14px 0;padding:8px 10px;border:1.5px solid var(--verde);border-radius:10px;background:var(--verde-s);font-size:13px;line-height:1.6}
+.paso{display:inline-block;margin:2px 6px 2px 0;padding:1px 8px;border-radius:12px;background:#fff;border:1px solid var(--linea)}
+.paso.on{background:var(--verde);color:#fff;border-color:var(--verde);font-weight:bold} .paso.ok{opacity:.55;text-decoration:line-through}
+.pasos-barra{display:none;font-size:11px;line-height:1.5;margin-top:2px} .pasos-barra .paso{margin:0;padding:0 5px;font-size:11px}
+.pts2{font-size:12px;line-height:1.25;text-align:right;white-space:nowrap}
+.tabs button{padding:8px 4px;font-size:14px}
+.tabs button small{font-size:11px}
 .nota-sec{font-size:13px;color:var(--gris);padding:10px 14px 0}
 </style>
 </head>
@@ -156,27 +170,36 @@ textarea{width:100%;resize:vertical}
 <div id="modal"><div class="caja" id="modal-c"></div></div>
 <div id="visor"><img alt="Foto" id="visor-img"></div>
 <div id="mostrar"></div>
-<script src="plantilla.js?v=9.1"></script>
-<script src="datos.js?v=9.1"></script>
+<script src="plantilla.js?v=12"></script>
+<script src="datos.js?v=12"></script>
 <script>
 'use strict';
-var VERSION = 'EVAL-OP 9.1';
+var VERSION = 'EVAL-OP 12';
 /* defensa contra caché mezclado: si llegó una plantilla de otra versión, se avisa en vez de fallar en silencio */
-var PLANTILLA_ESPERADA = 'OP-9';
+var PLANTILLA_ESPERADA = 'OP-12';
 if (!window.PLANTILLA || window.PLANTILLA.version !== PLANTILLA_ESPERADA || !window.PLANTILLA.tarjetas_op8 || !window.PILOTOS) {
   document.getElementById('app').innerHTML = '<div class="msg err" style="font-size:22px;font-weight:bold;line-height:1.35;padding:22px;border:3px solid var(--rojo)">Versión mezclada: cierra la app, abre con señal y recarga.' +
     '<div style="font-size:14px;font-weight:normal;margin-top:10px">La app es ' + VERSION + ' y la lista cargada es ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ' (se esperaba ' + PLANTILLA_ESPERADA + '). Tus datos guardados no se han tocado.</div></div>';
   document.getElementById('ver').textContent = VERSION + ' · versión mezclada';
   throw new Error('Versión mezclada: plantilla ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ', se esperaba ' + PLANTILLA_ESPERADA);
 }
-var P = window.PLANTILLA, PILOTOS = window.PILOTOS || [], DRONES = window.DRONES || [], ITEMS = [], SEC = {};
-P.secciones.forEach(function (s) { SEC[s.id] = s; s.items.forEach(function (it) { it.s = s.id; it.tipo = s.tipo; ITEMS.push(it); }); });
+var P = window.PLANTILLA, PILOTOS = window.PILOTOS || [], DRONES = window.DRONES || [];
+/* Listas de preguntas: la actual (OP-10) y la de OP-8/OP-9 (28 preguntas), para abrir sesiones y respaldos anteriores */
+function armarLista(secs) { var L = { secciones: secs, items: [], SEC: {} }; secs.forEach(function (s) { L.SEC[s.id] = s; s.items.forEach(function (it) { it.s = s.id; it.tipo = s.tipo; L.items.push(it); }); }); return L; }
+var LISTA = armarLista(P.secciones), LISTA_OP10 = armarLista(P.secciones_op10 || P.secciones), LISTA_OP9 = armarLista(P.secciones_op9 || P.secciones);
+/* versión de la lista de la sesión: 'OP-9' (también OP-8), 'OP-10' o la actual (OP-11, por puntos, sin críticas) */
+function verLista(S) { var v = (S && S.plantilla) || ''; return /^OP-[89]$/.test(v) ? 'OP-9' : v === 'OP-10' ? 'OP-10' : 'actual'; }
+function vieja(S) { return verLista(S) !== 'actual'; }
+function lista(S) { var v = verLista(S); return v === 'OP-9' ? LISTA_OP9 : v === 'OP-10' ? LISTA_OP10 : LISTA; }
+function itemsDe(S) { return lista(S).items; }
+function itemPorId(S, id) { return itemsDe(S).filter(function (x) { return x.id === id; })[0]; }
+function puntosLista(L) { return L.items.reduce(function (a, x) { return a + x.p; }, 0); }
 var app = document.getElementById('app');
 function $(s) { return document.querySelector(s); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function fmt(t) { if (!t) return ''; var d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
-function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function nombre1(n) { var p = String(n || '').split(' ').filter(Boolean); return p.length >= 4 ? p[0] + ' ' + p[2] : p.length === 3 ? p[0] + ' ' + p[1] : p.join(' '); }
 function ajustes() { try { return JSON.parse(localStorage.getItem('evop:aj')) || {}; } catch (e) { return {}; } }
@@ -231,100 +254,122 @@ function urlFoto(id) { if (URLS[id]) return Promise.resolve(URLS[id]); return le
 function pintarFotos(r) { Array.prototype.forEach.call((r || document).querySelectorAll('img[data-foto]'), function (im) { urlFoto(im.getAttribute('data-foto')).then(function (u) { if (u) im.src = u; }); }); }
 
 /* ---------- Resultado de un piloto ---------- */
+function r1(x) { return Math.round(x * 10) / 10; }
+function num(x) { return String(x).replace('.', ','); }
+/* OP-11: cada pregunta aporta puntos obtenidos y posibles (No aplica no cuenta); la destreza aporta su valor proporcional.
+   Listas anteriores: su cálculo original (sí/no, críticas). */
 function calcular(S, k) {
-  var sum = 0, max = 0, c = 0, n = 0, na = 0, pend = 0, crit = [], it = S.ev[k].items;
-  ITEMS.forEach(function (x) {
-    var e = (it[x.id] || {}).e;
-    if (e === 'c') { c++; sum += x.p; max += x.p; } else if (e === 'n') { n++; max += x.p; if (x.c) crit.push(x); } else if (e === 'na') na++; else pend++;
+  var sum = 0, max = 0, c = 0, n = 0, na = 0, pend = 0, crit = [], it = S.ev[k].items, perd = [], det = [];
+  var actual = !vieja(S);
+  itemsDe(S).forEach(function (x) {
+    var e = (it[x.id] || {}).e, obt = null;
+    if (actual && x.destreza) {
+      var d = destreza(S, k);
+      if (d.completa) { obt = d.puntos; sum += obt; max += x.p; c++; if (obt < x.p) perd.push({ id: x.id, t: x.corto || x.t, perdido: r1(x.p - obt) }); } else pend++;
+    } else if (e === 'c') { c++; sum += x.p; max += x.p; obt = x.p; }
+    else if (e === 'n') { n++; max += x.p; obt = 0; perd.push({ id: x.id, t: x.corto || x.t, perdido: x.p }); if (x.c && !actual) crit.push(x); }
+    else if (e === 'na') na++; else pend++;
+    det.push({ id: x.id, t: x.t, p: x.p, obtenido: obt });
   });
-  var pts = max ? Math.round(1000 * sum / max) / 10 : 0;
-  return { c: c, n: n, na: na, pend: pend, crit: crit, pts: pts, nota: S.nota, aprobado: !crit.length && !pend && pts >= S.nota };
+  perd.sort(function (a, b) { return b.perdido - a.perdido; });
+  var pts = max ? r1(100 * sum / max) : 0;
+  return { c: c, n: n, na: na, pend: pend, crit: crit, pts: pts, nota: S.nota, aprobado: !crit.length && !pend && pts >= S.nota, perdidos: perd, preguntas: det, obtenidos: r1(sum), posibles: max };
 }
+function perdioTxt(r) { return r.perdidos.length ? 'Perdió: ' + r.perdidos.map(function (x) { return x.t + ' (' + num(x.perdido) + ')'; }).join(', ') : 'No perdió puntos'; }
 function otro(k) { return k === 'A' ? 'B' : 'A'; }
-/* ---------- Prueba de destreza: vuelo sin pantalla con órdenes dictadas ---------- */
-var D = P.destreza;
+/* modo individual: el piloto sin pareja (S.A) se evalúa en los dos roles; S.B es un acompañante que no se evalúa */
+function individual(S) { return !!S && S.modo === 'individual'; }
+function evaluados(S) { return individual(S) ? ['A'] : ['A', 'B']; }
+function nombreComp(S, k) { return individual(S) && otro(k) === 'B' ? S.B + ' (acompañante, no evaluado)' : S[otro(k)]; }
+/* ---------- Prueba de destreza: vuelo sin pantalla, órdenes con puntos cardinales absolutos (alfabeto fonético) ---------- */
+var D = P.destreza, CARD = ['N', 'S', 'E', 'W'], VEC = { N: [0, 1], S: [0, -1], E: [1, 0], W: [-1, 0] };
+function azar(a) { return a[Math.floor(Math.random() * a.length)]; }
+function desViejo(d) { return !!(d && d.c); }
+/* 6 combinaciones nariz + desplazamiento (horizontal 10–15 m o vertical), la mayoría con la nariz desalineada; sin alejarse más de
+   D.maximo_m del dronpuerto en cada eje; «Baja» solo después de «Sube»; nunca la misma secuencia que el compañero */
 function sortearOrdenes(S, k) {
-  var otra = (S.ev[otro(k)].des || {}).ord || [], pick = function (tipo) { var o = D.ordenes[tipo], ops = o.filter(function (x) { return otra.indexOf(x) < 0; }); if (!ops.length) ops = o; return ops[Math.floor(Math.random() * ops.length)]; };
-  var med = D.tipos.filter(function (t) { return t[0] !== 'regreso'; }).map(function (t) { return pick(t[0]); });
-  for (var i = med.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = med[i]; med[i] = med[j]; med[j] = t; }
-  var ord = med.concat([pick('regreso'), D.final]);
-  S.ev[k].des = { ord: ord, c: ord.map(function () { return [0, 0, 0]; }), rep: ord.map(function () { return false; }), mir: 0, inter: false };
+  var otra = ((S.ev[otro(k)].des || {}).ord || []).join('|'), ord, n = 0;
+  do {
+    var x = 0, y = 0, z = 0, alineadas = 0, ok = true, prev = '', L = [], nv = Math.random() < 0.5 ? 1 : 2;
+    var vert = []; for (var i = 0; i < nv; i++) vert.push(i === 0 ? 0 : 1);
+    var pos = []; while (pos.length < nv) { var p = 1 + Math.floor(Math.random() * (D.combinaciones - 1)); if (pos.indexOf(p) < 0) pos.push(p); } pos.sort();
+    for (i = 0; i < D.combinaciones && ok; i++) {
+      var nariz = azar(CARD), j = pos.indexOf(i);
+      if (j >= 0) { var v = D.vertical[vert[j]]; z += j === 0 ? 1 : -1; if (z < 0) ok = false; L.push('Nariz al ' + D.puntos[nariz] + '. ' + v); continue; }
+      var dir = azar(CARD.filter(function (c) { return c !== prev; })), m = azar(D.horizontal);
+      if (dir === nariz) alineadas++;
+      x += VEC[dir][0] * m; y += VEC[dir][1] * m; prev = dir;
+      if (Math.abs(x) > D.maximo_m || Math.abs(y) > D.maximo_m) ok = false;
+      L.push('Nariz al ' + D.puntos[nariz] + '. Desplázate ' + m + ' m al ' + D.puntos[dir] + '.');
+    }
+    if (alineadas > 1) ok = false;
+    ord = L.concat([D.regreso.replace('{p}', D.puntos[azar(CARD)]), D.final.replace('{p}', D.puntos[azar(CARD)])]);
+  } while ((!ok || ord.join('|') === otra) && ++n < 500);
+  S.ev[k].des = { ord: ord, v: ord.map(function () { return null; }), mir: 0, inter: false };
 }
 function destreza(S, k) {
   var d = S.ev[k].des;
-  if (!d) return { pts: 0, max: 0, completa: false, ok: false };
+  if (!d) return { pts: 0, max: 0, completa: false, ok: false, puntos: 0 };
+  if (desViejo(d)) { /* OP-8/OP-9: 3 criterios por orden, 18 de 24 */
+    var DV = P.destreza_op9 || { minimo: 18, miradas: 2 }, pv = 0, cv = true;
+    d.c.forEach(function (cr, i) { var p = cr.filter(function (x) { return x === 1; }).length; if (d.rep && d.rep[i]) p = Math.max(0, p - 1); pv += p; if (cr.indexOf(0) >= 0) cv = false; });
+    var cmp = cv || d.inter; return { pts: pv, max: d.ord.length * 3, completa: cmp, ok: cmp && !d.inter && pv >= DV.minimo && d.mir <= DV.miradas, mir: d.mir, inter: d.inter, vieja: true };
+  }
   var pts = 0, comp = true;
-  d.c.forEach(function (cr, i) { var p = cr.filter(function (x) { return x === 1; }).length; if (d.rep[i]) p = Math.max(0, p - 1); pts += p; if (cr.indexOf(0) >= 0) comp = false; });
-  var completa = comp || d.inter, ok = completa && !d.inter && pts >= D.minimo && d.mir <= D.miradas;
-  return { pts: pts, max: d.ord.length * 3, completa: completa, ok: ok, mir: d.mir, inter: d.inter };
+  d.v.forEach(function (v) { if (v == null) comp = false; else pts += v; });
+  var max = d.ord.length * 2;
+  if (verLista(S) === 'OP-10') { /* OP-10: aprueba con 12 de 16, máximo 2 miradas y sin intervención */
+    var D10 = P.destreza_op10 || { minimo: 12, miradas: 2 }, cp = comp || d.inter;
+    return { pts: pts, max: max, completa: cp, ok: cp && !d.inter && pts >= D10.minimo && d.mir <= D10.miradas, mir: d.mir, inter: d.inter, op10: true };
+  }
+  /* OP-11: proporcional sobre D.valor, −1 por cada mirada después de la 2.ª */
+  var puntos = Math.max(0, r1(D.valor * pts / max - Math.max(0, d.mir - D.miradas_libres)));
+  return { pts: pts, max: max, completa: comp, ok: comp, mir: d.mir, inter: false, puntos: puntos };
 }
-/* la pregunta de destreza se responde sola cuando la prueba de órdenes termina */
+/* la pregunta de destreza queda respondida cuando se califican las 8 órdenes; aporta su valor proporcional */
 function aplicarDestreza(S, k) {
-  var it = ITEMS.filter(function (x) { return x.destreza; })[0], r = S.ev[k].items[it.id] || (S.ev[k].items[it.id] = {}), d = destreza(S, k);
-  r.e = d.completa ? (d.ok ? 'c' : 'n') : ''; r.t = Date.now();
+  var it = itemsDe(S).filter(function (x) { return x.destreza; })[0], r = S.ev[k].items[it.id] || (S.ev[k].items[it.id] = {}), d = destreza(S, k);
+  r.e = d.completa ? 'c' : ''; r.obt = d.completa ? d.puntos : null; r.t = Date.now();
 }
 function alturaH(S) { var o = parseFloat(S && S.obst); return Math.max(25, isNaN(o) ? 0 : Math.ceil(o) + 10); }
 function txt(S, s) { return String(s); }
-/* Tarjetas: P.tarjetas (escenarios vigentes); P.tarjetas_op8 solo para leer sesiones de EVAL-OP 8. Al asignarla se guarda una copia
-   en la sesión (S.ev[k].tarjeta), así una revisión posterior de los escenarios no cambia lo que se evaluó. */
+/* Tarjetas: dos por vuelo. S.ev[f].tp = la del piloto que vuela (pregunta «tarjeta» de f); S.ev[f].to = la del observador de ese vuelo
+   (pregunta «tarjeta_obs» del compañero). Al asignarlas se guarda una copia (S.ev[f].tarjeta / tarjetaObs). P.tarjetas_op8 solo para leer EVAL-OP 8. */
+var SLOT = { tp: { copia: 'tarjeta', para: 'piloto' }, to: { copia: 'tarjetaObs', para: 'observador' } };
 function buscarTarjeta(id) { return id ? P.tarjetas.concat(P.tarjetas_op8 || []).filter(function (x) { return x.id === id; })[0] : null; }
-function tarjetaDe(S, k) { var e = S.ev[k]; if (!e.tp) return null; return e.tarjeta && e.tarjeta.id === e.tp ? e.tarjeta : buscarTarjeta(e.tp); }
-function tarjetasDe(S, k) { return [tarjetaDe(S, k)].filter(Boolean); }
+function tarjetaDe(S, f, slot) { slot = slot || 'tp'; var e = S.ev[f], id = e[slot]; if (!id) return null; var c = e[SLOT[slot].copia]; return c && c.id === id ? c : buscarTarjeta(id); }
+function tarjetasDe(S, k) { return [tarjetaDe(S, k, 'tp')].filter(Boolean); }
 function nivel(t) { return String(t.tiempo || '').split(':')[0].trim(); }
 function grupoT(t) { return t.clase === 'ejecutable en vuelo' ? (nivel(t) === 'alto' ? 'alto' : 'vuelo') : t.clase === 'ejecutable en tierra' ? 'tierra' : t.clase === 'solo verbal' ? 'verbal' : 'otro'; }
 var GRUPOS = [['vuelo', 'En vuelo'], ['alto', 'Tiempo alto'], ['tierra', 'En tierra'], ['verbal', 'Solo verbal'], ['otro', 'Sin clasificar']];
+/* sorteo: piloto = ejecutable en vuelo sin tiempo alto; observador = ejecutable en vuelo que se resuelve en el aire (tiempo bajo) */
+/* OP-12: piloto = cualquier ejecutable en vuelo (su tarjeta va de última, también las de tiempo alto); observador = ejecutable en vuelo de tiempo bajo.
+   Si la tarjeta trae en_sorteo (escenarios ESC-4), además debe estar en true. */
+function sorteable(t, slot) { return t.en_sorteo !== false && t.para === SLOT[slot].para && t.clase === 'ejecutable en vuelo' && (slot === 'tp' || nivel(t) === 'bajo'); }
+var PREGUNTA_ALTO = '¿Qué harías ahora con el dron (o la batería)?';
 function repTxt(r) { return r === 'MOR+VOR' ? 'MOR y VOR' : r || '–'; }
-/* reporte esperado de la tarjeta de su vuelo (las de EVAL-OP 8 lo traen por equivalencia con su escenario) */
-function repEsperado(S, k) { var t = tarjetaDe(S, k); return t ? t.reporte_esperado || 'VOR' : ''; }
-/* prueba de reportes (aparte del puntaje): el piloto hace el MOR/VOR en el recurso de EPM; aquí solo se registra si lo hizo */
-var REPX = { si: ['Sí lo hizo', 'ok'], no: ['No lo hizo', 'mal'], pend: ['Pendiente', 'na'] };
-function repDe(S, k) { return S.ev[k].reporte || {}; }
-function repHecho(S, k) { var e = repDe(S, k).e; return e === 'si' ? true : e === 'no' ? false : null; }
-function repEstado(S, k) { var e = repDe(S, k).e; return e === 'si' ? 'si' : e === 'no' ? 'no' : e === 'pend' ? 'pendiente' : 'sin_registro'; }
-var REPCSV = { si: 'Sí', no: 'No', pendiente: 'Pendiente', sin_registro: 'Sin registrar' };
-
-/* ---------- Prueba de reportes: registro por piloto (se puede marcar después de cerrar) ---------- */
-function reporteHtml(S, k) {
-  var r = repDe(S, k), esp = repEsperado(S, k), x = REPX[r.e];
-  return '<div class="tarj" data-repk="' + k + '" style="margin:10px 0"><b>Reporte de su contingencia</b> <span class="sub">(prueba de reportes, aparte del puntaje)</span><br>' +
-    '<span class="sub">Reporte esperado:</span> <b>' + (esp ? repTxt(esp) : 'sin tarjeta todavía') + '</b> <span class="sub">· lo hace ' + esc(nombre1(S[k])) + ' en el recurso de EPM</span><br>' +
-    '<span class="sub">¿Lo hizo?</span> <b class="' + (x ? x[1] : 'na') + '">' + (x ? x[0] : 'Sin registrar') + '</b>' + (r.fecha ? ' <span class="sub">· registrado ' + fmt(r.fecha) + '</span>' : '') +
-    (r.e ? ' · prueba de reportes: <b>' + (r.e === 'si' ? 'aprueba' : r.e === 'no' ? 'no aprueba' : 'pendiente') + '</b>' : '') +
-    (r.nota ? '<br><i class="solo-print">' + esc(r.nota) + '</i>' : '') +
-    '<div class="no-print"><div class="est" style="margin-top:8px"><button class="c' + (r.e === 'si' ? ' on' : '') + '" data-rep="si">Sí</button><button class="n' + (r.e === 'no' ? ' on' : '') + '" data-rep="no">No</button><button class="na' + (r.e === 'pend' ? ' on' : '') + '" data-rep="pend">Pendiente</button></div>' +
-    '<div class="extra"><textarea rows="1" data-repnota placeholder="Nota (opcional): número o fecha del reporte, qué faltó…">' + esc(r.nota || '') + '</textarea></div></div></div>';
-}
-function enlazarReportes(S, raiz) {
-  Array.prototype.forEach.call(raiz.querySelectorAll('[data-repk]'), function (c) {
-    var k = c.getAttribute('data-repk');
-    var listo = function () { if (S.estado === 'final') S.resumen = resumen(S); return guardarS(S); };
-    Array.prototype.forEach.call(c.querySelectorAll('[data-rep]'), function (b) {
-      b.onclick = function () {
-        var r = S.ev[k].reporte || (S.ev[k].reporte = {}); r.e = b.getAttribute('data-rep'); r.fecha = Date.now(); r.esperado = repEsperado(S, k);
-        listo(); c.outerHTML = reporteHtml(S, k); enlazarReportes(S, $('[data-repk="' + k + '"]').parentNode);
-      };
-    });
-    var ta = c.querySelector('[data-repnota]');
-    ta.oninput = function () { var r = S.ev[k].reporte || (S.ev[k].reporte = {}); r.nota = ta.value.trim(); clearTimeout(ta.t); ta.t = setTimeout(listo, 400); };
-  });
-}
-/* ---------- Resumen estable por piloto para el informe único (esquema evop-resumen-1) ---------- */
+/* reporte que le corresponde: el de la tarjeta de piloto de su vuelo («No requiere» ya viene como VOR) */
+function repEsperado(S, k) { var t = tarjetaDe(S, k, 'tp'); return t ? t.reporte_esperado || 'VOR' : ''; }
+/* ---------- Resumen estable por piloto para el informe único (esquema evop-resumen-3) ---------- */
 function iso(t) {
   if (!t) return null; var d = new Date(t), o = -d.getTimezoneOffset(), a = Math.abs(o);
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + (o < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
 }
+function fichaT(t) { return t ? { id: t.id, t: t.t, para: t.para, reporte_esperado: t.reporte_esperado || 'VOR' } : null; }
 function resumen(S) {
-  return ['A', 'B'].map(function (k) {
-    var r = calcular(S, k), e = S.ev[k], d = destreza(S, k), t = tarjetaDe(S, k), rp = repDe(S, k), esp = repEsperado(S, k) || null, f = new Date(S.inicio);
-    return { nombre: S[k], rol: k === 'A' ? 'primero' : 'segundo', companero: S[otro(k)], fecha: f.getFullYear() + '-' + pad(f.getMonth() + 1) + '-' + pad(f.getDate()),
+  return evaluados(S).map(function (k) {
+    var r = calcular(S, k), e = S.ev[k], d = destreza(S, k), esp = repEsperado(S, k) || null, f = new Date(S.inicio), act = !vieja(S);
+    var o = { nombre: S[k], rol: k === 'A' ? 'primero' : 'segundo', companero: S[otro(k)], modo: individual(S) ? 'individual' : 'pareja', companero_evaluado: !individual(S), fecha: f.getFullYear() + '-' + pad(f.getMonth() + 1) + '-' + pad(f.getDate()),
       lugar: S.lugar || '', dron: S.dron || '', tipo: S.tipo || '', evaluador: S.evaluador || '', plantilla: S.plantilla || '',
       version_app: S.version_app || (S.plantilla === 'OP-8' ? 'EVAL-OP 8' : null),
       puntaje: r.pts, nota_minima: r.nota, aprobado_operacional: r.aprobado,
       criticas_incumplidas: r.crit.map(function (x) { return { id: x.id, t: x.t }; }),
-      destreza: e.des ? { pts: d.pts, max: d.max, miradas: d.mir, intervencion: !!d.inter, aprobada: d.ok } : null,
-      contingencia: t ? { id: t.id, t: t.t, para: t.para, reporte_esperado: esp } : null,
-      reporte: { esperado: esp, hecho: repHecho(S, k), estado: repEstado(S, k), nota: rp.nota || '', fecha: iso(rp.fecha) },
-      obst: S.obst === '' || S.obst == null ? null : +S.obst, rth: e.rth === '' || e.rth == null ? null : +e.rth, observaciones: e.obs || '' };
+      destreza: !e.des ? null : act ? { pts: d.pts, max: d.max, miradas: d.mir, puntos: d.completa ? d.puntos : null, puntos_max: D.valor } : { pts: d.pts, max: d.max, miradas: d.mir, intervencion: !!d.inter, aprobada: d.ok },
+      contingencia: fichaT(tarjetaDe(S, k, 'tp')), contingencia_observador: fichaT(tarjetaDe(S, otro(k), 'to')),
+      reporte: { esperado: esp },
+      preguntas: r.preguntas, perdidos: r.perdidos, observaciones: e.obs || '' };
+    if (!act) { o.obst = S.obst === '' || S.obst == null ? null : +S.obst; o.rth = e.rth === '' || e.rth == null ? null : +e.rth; }
+    return o;
   });
 }
 
@@ -340,8 +385,8 @@ function inicio() {
       '<label class="btn" style="display:inline-flex;align-items:center">Importar<input type="file" id="b-imp" accept=".json,application/json" hidden></label><button class="btn" id="b-guia">Guía de la prueba</button><button class="btn" id="b-aj">Ajustes</button></div></div>' +
       '<div class="lista">' + (L.length ? L.map(function (S) {
         var tag = function (k) { var r = calcular(S, k); return S.estado === 'final' ? '<span class="tag ' + (r.aprobado ? 'ok">' : 'mal">') + esc(nombre1(S[k])) + ' ' + r.pts + '</span>' : ''; };
-        var av = S.estado === 'final' ? tag('A') + ' ' + tag('B') : '<span class="tag bor">En curso</span>';
-        return '<button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(S.A) + ' y ' + esc(S.B) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>';
+        var av = S.estado === 'final' ? evaluados(S).map(tag).join(' ') : '<span class="tag bor">En curso</span>';
+        return '<button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(S.A) + (individual(S) ? ' (acompañante: ' + esc(S.B) + ')' : ' y ' + esc(S.B)) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>';
       }).join('') : '<div class="hoja sub">Todavía no hay pruebas en este celular.</div>') + '</div>';
     $('#b-nueva').onclick = nueva; $('#b-aj').onclick = pantallaAjustes; $('#b-guia').onclick = guia;
     $('#b-exp').onclick = function () { exportar(L); }; $('#b-csv').onclick = function () { exportarCSV(L); };
@@ -361,16 +406,20 @@ function pantallaAjustes() {
 function minVuelo() { var f = P.cronograma.filter(function (x) { return /^Vuelo 1/.test(x.t); })[0]; return f ? f.a - f.de : ''; }
 function guia() {
   app.innerHTML = '<div class="hoja"><h1>Guía de la prueba operacional</h1>' +
-    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que empieza la prueba: tú explicas, ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las órdenes de destreza y das la contingencia.</p>' +
+    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que empieza la prueba: tú explicas, ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las órdenes de destreza y das las contingencias.</p>' +
     '<h2>Cronograma sugerido</h2><ul>' + P.cronograma.map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join('') + '</ul>' +
     '<h2>Qué decirles al empezar</h2><ul><li>Tienen ' + P.minutos + ' minutos para preparar, volar los dos y cerrar; cada vuelo tiene ' + minVuelo() + ' minutos, de la lista de chequeo pre-vuelo al apagado.</li><li>Cada uno vuela una vez y es observador del otro.</li>' +
-    '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las órdenes que le dictes. En la mitad del vuelo le das una situación que debe atender como si fuera real.</li><li>Todo se registra en la bitácora como en una operación normal.</li></ul>' +
-    '<h2>Calificación</h2><p class="sub">' + ITEMS.length + ' preguntas de sí o no: las de 5 puntos son las más importantes y las demás valen 3; suman 100. Las críticas (C), si fallan, hacen que no apruebe aunque tenga buen puntaje. Nota mínima: ' + notaMin() + '.</p>' +
-    P.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.c ? ' · C' : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
-    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. La app sortea ' + (D.tipos.length + 1) + ' órdenes (una de cada tipo: ' + D.tipos.map(function (t) { return t[1].toLowerCase(); }).join(', ') + ', y el aterrizaje al final). En cada orden marcas: ' + D.criterios.join(', ').toLowerCase() + '. Cada criterio vale 1 punto; una orden repetida vale máximo 2. Aprueba con ' + D.minimo + ' de ' + ((D.tipos.length + 1) * 3) + ', máximo ' + D.miradas + ' miradas a la pantalla y sin intervención de seguridad.</p>' +
-    D.tipos.map(function (t) { return '<p style="margin:4px 0"><b>' + esc(t[1]) + ':</b> ' + D.ordenes[t[0]].map(esc).join(' · ') + '</p>'; }).join('') + '<p style="margin:4px 0"><b>Final:</b> ' + esc(D.final) + '</p>' +
-    '<h2>Tarjetas de contingencia (' + P.tarjetas.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Una por vuelo, en la mitad del vuelo. Se alterna: en un vuelo se le muestra al piloto y en el otro al observador, sin que el otro la vea. El sorteo solo usa las de «En vuelo» (caben en ' + P.minutos + ' minutos), no repite tarjeta en la prueba y no saca dos de la misma familia; las demás se eligen a mano con «o elegir…».</p>' +
-    '<h2>Prueba de reportes</h2><p class="sub">Cada piloto hace el reporte de la contingencia de su vuelo (MOR, VOR o los dos) en el recurso de EPM, por fuera de la app. Aquí solo registras si lo hizo: no suma ni resta a los 100 puntos y se puede marcar después de cerrar la prueba. Si el escenario decía «No requiere», igual se hace un VOR.</p>' +
+    '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las órdenes que le dictes con los puntos cardinales (November = norte, Sierra = sur, Echo = este, Whiskey = oeste). Antes, muéstrales dónde queda el November desde el dronpuerto.</li>' +
+    '<li>En cada vuelo hay situaciones que deben atender como si fueran reales: una se la muestras al piloto y otra al observador.</li><li>Cada piloto registra su vuelo en la bitácora, como en una operación normal.</li></ul>' +
+    '<h2>Orden de cada vuelo</h2><ol>' + P.pasos.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol><p class="sub">La pantalla de evaluación está organizada por vuelo: Preparación, Vuelo 1 (pilota el primero, observa el segundo), Vuelo 2 (al revés) y Cierre. Dentro de cada vuelo las preguntas siguen estos pasos; las del observador le suman a quien observa. La app marca el paso que sigue arriba del vuelo y en la barra. Si un piloto tiene la pareja por definir, al crear la prueba eliges un acompañante (de la lista o escribiendo el nombre) que no se evalúa: el piloto vuela en el vuelo 1, observa en el vuelo 2 y solo él recibe tarjetas, puntos e informe (sobre los mismos 100 puntos).</p>' +
+    '<h2>Calificación</h2><p class="sub">' + LISTA.items.length + ' preguntas; cada una vale lo que dice entre paréntesis y en total suman ' + puntosLista(LISTA) + ' puntos. El puntaje es los puntos obtenidos entre los puntos de las preguntas que aplican, por 100, con un decimal (una «no aplica» no cuenta). Ninguna pregunta es crítica: aprueba con ' + notaMin() + ' o más. Al cerrar, la app dice dónde perdió puntos cada piloto, de mayor a menor.</p>' +
+    LISTA.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + (s.nota_evaluador ? '<p class="sub"><b>Solo para ti:</b> ' + esc(s.nota_evaluador) + '</p>' : '') + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.trampa ? ' · vuelo ' + i.trampa : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
+    '<h2>Trampas (solo para ti)</h2><p class="sub">Una en cada vuelo, después de la tarjeta del observador y antes de la del piloto. Nunca se muestran en pantalla: las das de palabra.</p><ul>' + Object.keys(P.trampas).map(function (n) { return '<li><b>Vuelo ' + n + ':</b> ' + esc(P.trampas[n]) + '</li>'; }).join('') + '</ul>' +
+    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. Las direcciones son absolutas (no dependen de hacia dónde apunte el dron): November = norte, Sierra = sur, Echo = este, Whiskey = oeste. La app sortea ' + D.combinaciones + ' órdenes de nariz + desplazamiento (horizontal de ' + D.horizontal.join(' o ') + ' m, o vertical: ' + D.vertical.join(' / ').toLowerCase() + '), casi todas con la nariz hacia otro lado del desplazamiento, más «' + esc(D.regreso.replace('{p}', '…')) + '» y «' + esc(D.final.replace('{p}', '…')) + '»: ' + (D.combinaciones + 2) + ' órdenes, distintas a las del compañero. Ejemplo: «Nariz al November. Desplázate 15 m al Whiskey.»</p>' +
+    '<p class="sub">Toca la orden al dictarla: arranca un contador de ' + D.segundos + ' s (solo es una guía; no califica solo). Califica cada orden:</p><ul>' + D.notas.map(function (x) { return '<li><b>' + x[2] + ' (' + x[1] + '):</b> ' + esc(x[3]) + '.</li>'; }).join('') + '</ul>' +
+    '<p class="sub">Si tienes que intervenir en una orden, márcala «No la hizo». Puntos de la destreza = ' + D.valor + ' × (puntos de las órdenes / ' + ((D.combinaciones + 2) * 2) + ') − 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª (mínimo 0), con un decimal; se calcula solo al calificar las ' + (D.combinaciones + 2) + ' órdenes.</p>' +
+    '<h2>Tarjetas de contingencia (' + P.tarjetas.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Dos por vuelo, a pantalla completa solo a su destinatario: una para el piloto (cualquier ejecutable en vuelo, incluso de tiempo alto, porque va de última; en esas le preguntas al final «' + PREGUNTA_ALTO + '»; la evalúas en «¿Atendió la contingencia…?» del que vuela) y otra para el observador (ejecutable en vuelo y que se resuelve en el aire; la evalúas en «¿Avisó a tiempo las amenazas…?» del que observa). Así cada piloto recibe una como piloto y otra como observador. El sorteo no repite tarjeta ni familia en la pareja; las demás se eligen a mano con «o elegir…».</p>' +
+    '<h2>Reporte</h2><p class="sub">A cada piloto le corresponde el reporte de la tarjeta de piloto de su vuelo (MOR, VOR o los dos; si el escenario dice «No requiere», igual es VOR). Lo hace por fuera de la app; si lo hizo se verifica en el informe del PC.</p>' +
     GRUPOS.map(function (g) { var L = P.tarjetas.filter(function (t) { return grupoT(t) === g[0]; }); return L.length ? '<h2 style="font-size:15px">' + g[1] + ' (' + L.length + ')</h2>' + L.map(function (t) { return '<div class="tarj"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · se le muestra al <b>' + t.para + '</b> · reporte: <b>' + repTxt(t.reporte_esperado) + '</b><br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Tiempo:</span> ' + esc(t.tiempo) + '</div>'; }).join('') : ''; }).join('') +
     '<div class="acciones"><button class="btn" id="g-vol">Volver</button></div></div>';
   $('#g-vol').onclick = inicio;
@@ -378,21 +427,25 @@ function guia() {
 
 /* ---------- Nueva prueba ---------- */
 function nueva() {
-  var sel = { A: '', B: '', tipo: 'VLOS' }, hechos = {};
+  var sel = { A: '', B: '', tipo: 'VLOS', modo: '' }, hechos = {}, acomp = false;
   var deHoy = PILOTOS.filter(function (p) { return (p.turnos || []).some(function (t) { return t.ini.slice(0, 10) === hoy(); }); })
     .sort(function (a, b) { return a.turnos[0].ini.localeCompare(b.turnos[0].ini) || a.nombre.localeCompare(b.nombre); });
-  todas().then(function (L) { L.forEach(function (S) { hechos[S.A] = hechos[S.B] = S.estado === 'final' ? 'Evaluado' : 'En curso'; }); dibujar(null); });
+  todas().then(function (L) { L.forEach(function (S) { hechos[S.A] = S.estado === 'final' ? 'Evaluado' : 'En curso'; if (!individual(S)) hechos[S.B] = hechos[S.A]; }); dibujar(null); });
   function marca(n) { return hechos[n] ? ' <span class="tag ' + (hechos[n] === 'Evaluado' ? 'ok' : 'bor') + '">' + hechos[n] + '</span>' : ''; }
   function boton(p, extra) { return '<button class="sugerido" data-p="' + esc(p.nombre) + '"><b>' + esc(p.nombre) + marca(p.nombre) + '</b>' + (extra ? '<span>' + extra + '</span>' : '') + '</button>'; }
   function dibujar(filtro) {
     var f = norm(filtro || ''), cual = !sel.A ? 'A' : !sel.B ? 'B' : '';
+    var pA = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0], sinPareja = cual === 'B' && !(pA && pA.pareja);
     var lista = f ? PILOTOS.filter(function (p) { return norm(p.nombre).indexOf(f) >= 0 && p.nombre !== sel.A; }).slice(0, 12) : [];
     var pares = [];
     if (!sel.A) deHoy.forEach(function (p) { if (p.pareja && pares.some(function (x) { return x[1] === p.nombre; })) return; pares.push([p.nombre, p.pareja || '', p.turnos.filter(function (t) { return t.ini.slice(0, 10) === hoy(); })[0]]); });
     app.innerHTML = '<div class="hoja"><h1>Nueva prueba</h1>' +
-      (sel.A ? '<div class="msg ok">Vuela primero: <b>' + esc(sel.A) + '</b></div>' : '') + (sel.B ? '<div class="msg ok">Vuela segundo: <b>' + esc(sel.B) + '</b></div>' : '') +
-      (sel.A && sel.B ? '<div class="acciones" style="margin-top:0"><button class="btn chico" id="n-inv">Invertir orden</button><button class="btn chico" id="n-camb">Cambiar pilotos</button></div>' : '') +
-      (cual ? '<label class="campo">' + (cual === 'A' ? 'Buscar al piloto que vuela primero' : 'Buscar a su compañero (vuela segundo)') + '<input id="n-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
+      (sel.A ? '<div class="msg ok">Vuela primero: <b>' + esc(sel.A) + '</b></div>' : '') + (sel.B ? '<div class="msg ok">' + (sel.modo === 'individual' ? 'Acompañante (no se evalúa; pilota el vuelo 2): ' : 'Vuela segundo: ') + '<b>' + esc(sel.B) + '</b></div>' : '') +
+      (sel.modo === 'individual' ? '<div class="msg info">Solo se evalúa a <b>' + esc(sel.A) + '</b>: como piloto en el vuelo 1 y como observador en el vuelo 2.</div>' : '') +
+      (sinPareja && !acomp ? '<div class="msg info">' + esc(sel.A) + ' tiene la pareja por definir.</div><div class="acciones" style="margin-top:0"><button class="btn pri" id="n-acomp">Elegir acompañante (no se evalúa)</button></div><p class="sub" style="margin:8px 0 4px">o busca a un compañero que también se evalúa:</p>' : '') +
+      (sel.A && sel.B ? '<div class="acciones" style="margin-top:0">' + (sel.modo === 'individual' ? '' : '<button class="btn chico" id="n-inv">Invertir orden</button>') + '<button class="btn chico" id="n-camb">Cambiar pilotos</button></div>' : '') +
+      (cual ? '<label class="campo">' + (cual === 'A' ? 'Buscar al piloto que vuela primero' : acomp ? 'Acompañante (no se evalúa): busca en la lista o escribe el nombre' : 'Buscar a su compañero (vuela segundo)') + '<input id="n-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
+        (acomp && String(filtro || '').trim().length > 2 ? '<button class="sugerido" id="n-libre"><b>Usar «' + esc(String(filtro).trim()) + '» como acompañante</b><span>Nombre escrito a mano</span></button>' : '') +
         lista.map(function (p) { return boton(p, p.pareja ? 'pareja: ' + esc(p.pareja) : ''); }).join('') +
         (cual === 'A' && !f && pares.length ? '<p class="sub" style="margin:6px 0">Parejas programadas hoy:</p>' + pares.map(function (x) {
           return '<button class="sugerido" data-par="' + esc(x[0]) + '|' + esc(x[1]) + '"><b>' + esc(x[0]) + (x[1] ? ' y ' + esc(x[1]) : '') + marca(x[0]) + '</b><span>' + x[2].ini.slice(11) + ' a ' + x[2].fin.slice(11) + '</span></button>'; }).join('') : '') : '') +
@@ -401,18 +454,20 @@ function nueva() {
         '<p class="sub">Lugar: <b>' + esc(P.lugar) + '</b></p>' +
         '<div class="msg info">Al tocar «Empezar», arranca el reloj de ' + P.minutos + ' minutos de la prueba.</div>' +
         '<div class="acciones"><button class="btn pri" id="n-ok">Empezar la prueba</button><button class="btn" id="n-no">Cancelar</button></div>' : '<div class="acciones"><button class="btn" id="n-no">Cancelar</button></div>') + '</div>';
-    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { sel[cual] = b.getAttribute('data-p'); if (cual === 'A') { var p = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0]; if (p && p.pareja) sel.B = p.pareja; } dibujar(null); }; });
+    if ($('#n-acomp')) $('#n-acomp').onclick = function () { acomp = true; dibujar(''); };
+    if ($('#n-libre')) $('#n-libre').onclick = function () { sel.B = String(filtro).trim().replace(/\s+/g, ' '); sel.modo = 'individual'; dibujar(null); };
+    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { if (cual === 'B') sel.modo = acomp ? 'individual' : ''; sel[cual] = b.getAttribute('data-p'); if (cual === 'A') { var p = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0]; if (p && p.pareja) sel.B = p.pareja; } dibujar(null); }; });
     Array.prototype.forEach.call(app.querySelectorAll('[data-par]'), function (b) { b.onclick = function () { var x = b.getAttribute('data-par').split('|'); sel.A = x[0]; sel.B = x[1]; dibujar(null); }; });
     if ($('#n-bus')) { var i = $('#n-bus'); i.oninput = function () { dibujar(i.value); var j = $('#n-bus'); j.focus(); j.setSelectionRange(j.value.length, j.value.length); }; if (filtro != null) i.focus(); }
     if ($('#n-inv')) $('#n-inv').onclick = function () { var t = sel.A; sel.A = sel.B; sel.B = t; dibujar(null); };
-    if ($('#n-camb')) $('#n-camb').onclick = function () { sel.A = sel.B = ''; dibujar(null); };
+    if ($('#n-camb')) $('#n-camb').onclick = function () { sel.A = sel.B = ''; sel.modo = ''; acomp = false; dibujar(null); };
     Array.prototype.forEach.call(app.querySelectorAll('[data-tipo]'), function (b) { b.onclick = function () { sel.dron = $('#n-dron').value; sel.tipo = b.getAttribute('data-tipo'); dibujar(null); }; });
     if ($('#n-dron')) $('#n-dron').onchange = function () { sel.dron = this.value; };
     $('#n-no').onclick = inicio;
     if ($('#n-ok')) $('#n-ok').onclick = function () {
       if (!$('#n-dron').value) { modal('<h2>Elige el dron</h2><p>Selecciona el dron con el que van a hacer la prueba.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
-      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value,
-        evaluador: ajustes().evaluador || '', nota: notaMin(), inicio: Date.now(), ambos: true, obst: '', obs: '', fotosGen: [],
+      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value, modo: sel.modo === 'individual' ? 'individual' : 'pareja',
+        evaluador: ajustes().evaluador || '', nota: notaMin(), inicio: Date.now(), ambos: sel.modo !== 'individual', obst: '', obs: '', fotosGen: [],
         ev: { A: { items: {}, rth: '', tp: '', to: '' }, B: { items: {}, rth: '', tp: '', to: '' } } };
       if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (g) { S.gps = [+g.coords.latitude.toFixed(6), +g.coords.longitude.toFixed(6)]; guardarS(S); }, function () {}, { timeout: 15000 });
       guardarS(S).then(function () { evaluar(S, 'A'); });
@@ -426,17 +481,22 @@ function fase(S) {
   var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0];
   return f ? f.t.replace('{A}', nombre1(S.A)).replace('{B}', nombre1(S.B)) : 'Tiempo cumplido';
 }
-function barra(S, k) {
-  var r = calcular(S, k), b = $('#barra'), hechos = ITEMS.length - r.pend;
+function faseVuelo(S) { var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0]; return f && f.vuelo ? f.vuelo : ''; }
+function primer(n) { return String(n || '').split(' ')[0]; }
+function barra(S) {
+  var ra = calcular(S, 'A'), rb = calcular(S, 'B'), b = $('#barra'), N = itemsDe(S).length * evaluados(S).length, hechos = N - ra.pend - (individual(S) ? 0 : rb.pend);
+  var pt = function (r) { return r.c + r.n ? num(r.pts) : '–'; };
   b.style.display = 'flex';
-  b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / ITEMS.length) + '%"></i></span></span>' +
-    '<span><b>' + (r.c + r.n ? r.pts : '–') + '</b></span>' + (r.crit.length ? '<span class="tag mal">' + r.crit.length + 'C</span>' : '');
+  b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span id="pasos-barra" class="pasos-barra"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / N) + '%"></i></span></span>' +
+    '<span class="pts2">' + esc(nombre1(S.A)) + ' <b>' + pt(ra) + '</b>' + (individual(S) ? '' : '<br>' + esc(nombre1(S.B)) + ' <b>' + pt(rb) + '</b>') + '</span>' + (ra.crit.length + (individual(S) ? 0 : rb.crit.length) ? '<span class="tag mal">' + (ra.crit.length + rb.crit.length) + 'C</span>' : '');
   var tick = function () {
     var rest = S.inicio + P.minutos * 60000 - Date.now(), s = Math.round(Math.abs(rest) / 1000), el = $('#reloj');
     if (!el) return;
     el.textContent = (rest < 0 ? '+' : '') + Math.floor(s / 60) + ':' + pad(s % 60);
     el.className = 't' + (rest < 0 ? ' fin' : rest < 5 * 60000 ? ' aviso' : '');
     $('#fase').textContent = fase(S);
+    var fv = faseVuelo(S), pp = $('#pasos-barra');
+    if (pp) { var h = fv && !vieja(S) && !(individual(S) && fv === 'B') ? pasosLinea(S, fv, true) : ''; if (pp.innerHTML !== h) pp.innerHTML = h; pp.style.display = h ? 'block' : 'none'; }
   };
   clearInterval(TICK); tick(); TICK = setInterval(tick, 1000);
 }
@@ -446,81 +506,161 @@ function tituloSec(S, k, s) {
   if (s.tipo === 'conjunta') return s.titulo + ' – juntos';
   return s.titulo;
 }
-function evaluar(S, k) {
-  var ra = calcular(S, 'A'), rb = calcular(S, 'B');
-  app.innerHTML = '<div class="tabs"><button data-tab="A" class="' + (k === 'A' ? 'on' : '') + '">' + esc(nombre1(S.A)) + '<small>vuela 1.º · ' + (ITEMS.length - ra.pend) + '/' + ITEMS.length + '</small></button>' +
-    '<button data-tab="B" class="' + (k === 'B' ? 'on' : '') + '">' + esc(nombre1(S.B)) + '<small>vuela 2.º · ' + (ITEMS.length - rb.pend) + '/' + ITEMS.length + '</small></button></div>' +
-    '<div class="hoja" style="padding:10px 14px"><b>' + esc(S[k]) + '</b><span class="sub"> · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>' +
-    '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las secciones «juntos» se marcan para los dos</label></div>' +
-    P.secciones.map(function (s) {
-      var x = contar(S, k, s);
-      return '<div class="sec' + (ABIERTA[s.id] ? ' abierta' : '') + '" id="sec-' + s.id + '"><button class="cab" data-sec="' + s.id + '">' + esc(tituloSec(S, k, s)) + '<span class="cnt">' + x + '</span></button><div class="cuerpo">' +
-        
-        s.items.map(function (it) { return itemHtml(S, k, it); }).join('') + '</div></div>';
+/* ---------- Pantalla de evaluación ----------
+   OP-12: organizada por vuelo. Pestañas: Preparación (juntos), Vuelo 1 (pilota A, observa B), Vuelo 2 (pilota B, observa A), Cierre (juntos).
+   Cada fila es [persona, pregunta]: las preguntas del observador suman a quien observa. Las sesiones de listas anteriores se ven por persona. */
+var TABACT = 'prep';
+function tabsDe(S) {
+  if (vieja(S)) return [{ id: 'A', t: nombre1(S.A), sub: 'vuela 1.º' }, { id: 'B', t: nombre1(S.B), sub: 'vuela 2.º' }];
+  if (individual(S)) return [{ id: 'prep', t: 'Preparación', sub: nombre1(S.A) }, { id: 'v1', t: 'Vuelo 1', sub: 'pilota ' + nombre1(S.A) }, { id: 'v2', t: 'Vuelo 2', sub: 'observa ' + nombre1(S.A) }, { id: 'cierre', t: 'Cierre', sub: nombre1(S.A) }];
+  return [{ id: 'prep', t: 'Preparación', sub: 'juntos' }, { id: 'v1', t: 'Vuelo 1', sub: 'pilota ' + nombre1(S.A) }, { id: 'v2', t: 'Vuelo 2', sub: 'pilota ' + nombre1(S.B) }, { id: 'cierre', t: 'Cierre', sub: 'juntos' }];
+}
+function tabDe(S, k, it) {
+  if (vieja(S)) return k;
+  if (it.s === 'P') return 'prep';
+  if (it.s === 'V') return k === 'A' ? 'v1' : 'v2';
+  if (it.s === 'O') return k === 'A' ? 'v2' : 'v1';
+  if (it.trampa) return it.trampa === 1 ? 'v1' : 'v2';
+  return 'cierre';
+}
+function filasConj(S, items) { if (individual(S)) return [items.map(function (it) { return ['A', it]; })]; return S.ambos ? [items.map(function (it) { return ['A', it]; })] : ['A', 'B'].map(function (q) { return items.map(function (it) { return [q, it]; }); }); }
+function bloquesDe(S, tab) {
+  var L = lista(S);
+  if (vieja(S)) return L.secciones.map(function (s) { return { id: s.id, titulo: tituloSec(S, tab, s), filas: s.items.map(function (it) { return [tab, it]; }) }; });
+  var B = [];
+  var conj = function (s, titulo) {
+    filasConj(S, s.items).forEach(function (filas, i) {
+      B.push({ id: s.id + (S.ambos || individual(S) ? '' : filas[0][0]), titulo: titulo + (individual(S) ? ' – ' + nombre1(S.A) : S.ambos ? ' – juntos' : ' – ' + nombre1(S[filas[0][0]])), nota: i === 0 ? s.nota_evaluador : '', filas: filas });
+    });
+  };
+  if (tab === 'prep') { conj(L.SEC.P, L.SEC.P.titulo); return B; }
+  if (tab === 'cierre') { conj(L.SEC.C, L.SEC.C.titulo); return B; }
+  var f = tab === 'v1' ? 'A' : 'B', g = otro(f), n = tab === 'v1' ? 1 : 2, V = L.SEC.V.items;
+  var iD = V.map(function (x) { return !!x.destreza; }).indexOf(true), iT = V.map(function (x) { return !!x.tarjeta; }).indexOf(true);
+  var O = L.SEC.O.items.slice().sort(function (a, b) { return (b.tarjeta_obs ? 1 : 0) - (a.tarjeta_obs ? 1 : 0); });
+  var tr = L.SEC.T.items.filter(function (x) { return x.trampa === n; });
+  if (individual(S)) { /* solo se evalúa a S.A: en el vuelo 1 como piloto, en el vuelo 2 como observador */
+    if (tab === 'v2') {
+      B.push({ id: 'v2-1', titulo: '1. ' + nombre1(S.A) + ' como observador', filas: O.map(function (it) { return ['A', it]; }) });
+      B.push({ id: 'v2-2', titulo: '2. Trampa del vuelo 2', filas: tr.map(function (it) { return ['A', it]; }) });
+      return B;
+    }
+    B.push({ id: 'v1-1', titulo: '1. ' + nombre1(S.A) + ' como piloto: antes y durante el despegue', filas: V.slice(0, iD).map(function (it) { return ['A', it]; }) });
+    B.push({ id: 'v1-2', titulo: '2. Destreza de ' + nombre1(S.A), filas: [['A', V[iD]]] });
+    B.push({ id: 'v1-3', titulo: '3. Trampa del vuelo 1', filas: tr.map(function (it) { return ['A', it]; }) });
+    B.push({ id: 'v1-4', titulo: '4. Tarjeta para ' + nombre1(S.A) + ' (piloto)', filas: [['A', V[iT]]] });
+    B.push({ id: 'v1-5', titulo: '5. ' + nombre1(S.A) + ': comunicación, aterrizaje, «¡LIBRE!» y bitácora', filas: V.slice(iT + 1).map(function (it) { return ['A', it]; }) });
+    return B;
+  }
+  B.push({ id: tab + '-1', titulo: '1. ' + nombre1(S[f]) + ' como piloto: antes y durante el despegue', filas: V.slice(0, iD).map(function (it) { return [f, it]; }) });
+  B.push({ id: tab + '-2', titulo: '2. Destreza de ' + nombre1(S[f]), filas: [[f, V[iD]]] });
+  B.push({ id: tab + '-3', titulo: '3. ' + nombre1(S[g]) + ' como observador', filas: O.map(function (it) { return [g, it]; }) });
+  B.push({ id: tab + '-4', titulo: '4. Trampa del vuelo ' + n + (S.ambos ? ' (juntos)' : ''), filas: S.ambos ? tr.map(function (it) { return [f, it]; }) : [].concat(tr.map(function (it) { return [f, it]; }), tr.map(function (it) { return [g, it]; })) });
+  B.push({ id: tab + '-5', titulo: '5. Tarjeta para ' + nombre1(S[f]) + ' (piloto)', filas: [[f, V[iT]]] });
+  B.push({ id: tab + '-6', titulo: '6. ' + nombre1(S[f]) + ': comunicación, aterrizaje, «¡LIBRE!» y bitácora', filas: V.slice(iT + 1).map(function (it) { return [f, it]; }) });
+  return B;
+}
+function contarFilas(S, filas) {
+  var h = 0, m = 0;
+  filas.forEach(function (x) { var e = (S.ev[x[0]].items[x[1].id] || {}).e; if (e) h++; if (e === 'n') m++; });
+  return h + '/' + filas.length + (m ? ' · <b style="color:var(--rojo)">' + m + ' no</b>' : '');
+}
+function tabTxt(S, t) { var F = []; bloquesDe(S, t.id).forEach(function (b) { F = F.concat(b.filas); }); var h = F.filter(function (x) { return (S.ev[x[0]].items[x[1].id] || {}).e; }).length; return t.sub + ' · ' + h + '/' + F.length; }
+function obsHtml(S, q) { return '<h2>Observaciones de ' + esc(nombre1(S[q])) + '</h2><textarea data-obsk="' + q + '" rows="3" placeholder="Fortalezas, aspectos por mejorar…">' + esc(S.ev[q].obs || '') + '</textarea>'; }
+function evaluar(S, tab) {
+  var T = tabsDe(S), ids = T.map(function (t) { return t.id; });
+  if (ids.indexOf(tab) < 0) tab = ids[0];
+  TABACT = tab;
+  var vuelo = tab === 'v1' || tab === 'v2', f = tab === 'v2' ? 'B' : 'A';
+  var cab = vieja(S) ? '<b>' + esc(S[tab]) + '</b><span class="sub"> · ' + esc(S.tipo) + ' · lista ' + esc(S.plantilla) + '</span>'
+    : vuelo ? '<b>' + (tab === 'v1' ? 'Vuelo 1' : 'Vuelo 2') + ' · pilota ' + esc(nombre1(S[f])) + (individual(S) && f === 'B' ? ' (acompañante)' : '') + ' · observa ' + esc(nombre1(S[otro(f)])) + (individual(S) && f === 'A' ? ' (acompañante)' : '') + '</b>' +
+      (individual(S) ? '<div class="msg info" style="margin:8px 0 0">' + (f === 'B' ? 'En este vuelo solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b> como observador.' : 'Solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b>; ' + esc(nombre1(S.B)) + ' es acompañante y no se evalúa.') + '</div>' : '')
+    : '<b>' + (tab === 'prep' ? 'Preparación' : 'Cierre') + '</b><span class="sub"> · ' + esc(S.A) + ' y ' + esc(S.B) + ' · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>';
+  var bl = bloquesDe(S, tab);
+  app.innerHTML = '<div class="tabs" style="grid-template-columns:repeat(' + T.length + ',1fr)">' + T.map(function (t) { return '<button data-tab="' + t.id + '" class="' + (t.id === tab ? 'on' : '') + '">' + esc(t.t) + '<small>' + esc(tabTxt(S, t)) + '</small></button>'; }).join('') + '</div>' +
+    '<div class="hoja" style="padding:10px 14px">' + cab +
+    (vuelo || individual(S) ? '' : '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las preguntas «juntos» se marcan para los dos</label>') + '</div>' +
+    (vuelo && !(individual(S) && f === 'B') ? pasosHtml(S, f) : '') +
+    bl.map(function (b) {
+      return '<div class="sec' + (ABIERTA[b.id] === false ? '' : ' abierta') + '" id="sec-' + b.id + '"><button class="cab" data-sec="' + b.id + '">' + esc(b.titulo) + '<span class="cnt" data-cnt="' + b.id + '">' + contarFilas(S, b.filas) + '</span></button><div class="cuerpo">' +
+        (b.nota ? '<div class="msg info" style="margin:10px 14px 0"><b>Solo para ti:</b> ' + esc(b.nota) + '</div>' : '') +
+        b.filas.map(function (x) { return itemHtml(S, x[0], x[1]); }).join('') + '</div></div>';
     }).join('') +
-    '<div class="hoja" id="rep-ev">' + reporteHtml(S, k) + '</div>' +
-    '<div class="hoja"><h2>Observaciones de ' + esc(nombre1(S[k])) + '</h2><textarea id="obs-k" rows="3" placeholder="Fortalezas, aspectos por mejorar…">' + esc(S.ev[k].obs || '') + '</textarea>' +
-    '<h2 style="margin-top:12px">Observaciones generales de la prueba</h2><textarea id="obs" rows="2">' + esc(S.obs || '') + '</textarea>' +
-    '<div class="fotos" id="fg">' + (S.fotosGen || []).map(fotoHtml).join('') + '</div><div class="extra"><label class="camara">📷 Foto general<input type="file" accept="image/*" capture="environment" hidden id="foto-gen"></label></div></div>' +
-    '<div class="hoja"><div class="acciones" style="margin-top:0"><button class="btn pri" id="ev-fin">Terminar y ver resultados</button><button class="btn" id="ev-sal">Guardar y salir</button><button class="btn peligro" id="ev-bor">Borrar</button></div>' +
+    (vieja(S) || tab === 'cierre' ? '<div class="hoja">' + (vieja(S) ? [tab] : evaluados(S)).map(function (q) { return obsHtml(S, q); }).join('') +
+      '<h2 style="margin-top:12px">Observaciones generales de la prueba</h2><textarea id="obs" rows="2">' + esc(S.obs || '') + '</textarea>' +
+      '<div class="fotos" id="fg">' + (S.fotosGen || []).map(fotoHtml).join('') + '</div><div class="extra"><label class="camara">📷 Foto general<input type="file" accept="image/*" capture="environment" hidden id="foto-gen"></label></div></div>' : '') +
+    '<div class="hoja"><div class="acciones" style="margin-top:0">' + (tab !== ids[ids.length - 1] ? '<button class="btn" id="ev-sig">Siguiente: ' + esc(T[ids.indexOf(tab) + 1].t) + '</button>' : '') + '<button class="btn pri" id="ev-fin">Terminar y ver resultados</button><button class="btn" id="ev-sal">Guardar y salir</button><button class="btn peligro" id="ev-bor">Borrar</button></div>' +
     '<p class="sub">Todo se guarda automáticamente en este celular, aunque no haya señal.</p></div>';
-  barra(S, k); pintarFotos(app);
+  barra(S); pintarFotos(app);
   Array.prototype.forEach.call(app.querySelectorAll('[data-tab]'), function (b) { b.onclick = function () { evaluar(S, b.getAttribute('data-tab')); window.scrollTo(0, 0); }; });
-  $('#ambos').onchange = function () { S.ambos = this.checked; guardarS(S); };
-  Array.prototype.forEach.call(app.querySelectorAll('[data-sec]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-sec'); ABIERTA[id] = !ABIERTA[id]; $('#sec-' + id).classList.toggle('abierta'); }; });
-  ITEMS.forEach(function (it) { enlazarItem(S, k, it.id); });
+  if ($('#ev-sig')) $('#ev-sig').onclick = function () { evaluar(S, ids[ids.indexOf(tab) + 1]); window.scrollTo(0, 0); };
+  if ($('#ambos')) $('#ambos').onchange = function () { S.ambos = this.checked; guardarS(S); evaluar(S, tab); };
+  Array.prototype.forEach.call(app.querySelectorAll('[data-sec]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-sec'), el = $('#sec-' + id); el.classList.toggle('abierta'); ABIERTA[id] = el.classList.contains('abierta'); }; });
+  bl.forEach(function (b) { b.filas.forEach(function (x) { enlazarItem(S, x[0], x[1].id); }); });
   var dl = function (el, fn) { el.oninput = function () { fn(el.value); clearTimeout(el.t); el.t = setTimeout(function () { guardarS(S); }, 400); }; };
-  dl($('#obs-k'), function (v) { S.ev[k].obs = v; }); dl($('#obs'), function (v) { S.obs = v; });
-  $('#foto-gen').onchange = function () { agregarFoto(S, k, null, this.files[0]); };
-  enlazarFotos(S, k, $('#fg')); enlazarReportes(S, $('#rep-ev'));
+  Array.prototype.forEach.call(app.querySelectorAll('[data-obsk]'), function (el) { dl(el, function (v) { S.ev[el.getAttribute('data-obsk')].obs = v; }); });
+  if ($('#obs')) dl($('#obs'), function (v) { S.obs = v; });
+  if ($('#foto-gen')) { $('#foto-gen').onchange = function () { agregarFoto(S, 'A', null, this.files[0]); }; enlazarFotos(S, 'A', $('#fg')); }
   $('#ev-sal').onclick = function () { guardarS(S).then(inicio); };
   $('#ev-bor').onclick = function () {
     modal('<h2>¿Borrar esta prueba?</h2><p>Se borran las evaluaciones de los dos pilotos y sus fotos. No se puede deshacer.</p><div class="acciones"><button class="btn peligro" id="m-si">Borrar</button><button class="btn" id="m-no">Cancelar</button></div>');
     $('#m-si').onclick = function () { cerrar(); borrarS(S).then(inicio); }; $('#m-no').onclick = cerrar;
   };
-  $('#ev-fin').onclick = function () { terminar(S, k); };
+  $('#ev-fin').onclick = function () { terminar(S, 'A'); };
 }
-function contar(S, k, s) {
-  var it = S.ev[k].items, h = s.items.filter(function (i) { return (it[i.id] || {}).e; }).length, m = s.items.filter(function (i) { return (it[i.id] || {}).e === 'n'; }).length;
-  return h + '/' + s.items.length + (m ? ' · <b style="color:var(--rojo)">' + m + ' no</b>' : '');
+function actualizarConteos(S) {
+  bloquesDe(S, TABACT).forEach(function (b) { var c = document.querySelector('[data-cnt="' + b.id + '"]'); if (c) c.innerHTML = contarFilas(S, b.filas); });
+  var T = tabsDe(S);
+  Array.prototype.forEach.call(app.querySelectorAll('[data-tab]'), function (b, i) { var sm = b.querySelector('small'); if (sm && T[i]) sm.textContent = tabTxt(S, T[i]); });
+  var ps = document.querySelector('.pasos'); if (ps && (TABACT === 'v1' || TABACT === 'v2') && !(individual(S) && TABACT === 'v2')) ps.outerHTML = pasosHtml(S, TABACT === 'v1' ? 'A' : 'B');
+  barra(S);
 }
 function fotoHtml(id) { return '<span class="f"><img data-foto="' + id + '" alt="Foto"><button class="x" data-borra="' + id + '" aria-label="Borrar foto">×</button></span>'; }
+function obstHtml(S) { return '<div class="dato">Altura del obstáculo más alto <input type="number" inputmode="decimal" data-obst value="' + esc(S.obst) + '"> m</div>'; }
 function datoHtml(S, k, it) {
-  if (it.dato === 'obst') return '<div class="dato">Altura del obstáculo más alto <input type="number" inputmode="decimal" data-obst value="' + esc(S.obst) + '"> m</div>';
+  if (it.dato === 'obst') return obstHtml(S);
   if (it.dato === 'rth') {
     var aviso = S.obst !== '' && S.ev[k].rth !== '' && +S.ev[k].rth <= +S.obst ? '<span class="tag mal">No libra el obstáculo de ' + S.obst + ' m</span>' : '';
-    return '<div class="dato">Altura de RTH configurada <input type="number" inputmode="decimal" data-rth value="' + esc(S.ev[k].rth) + '"> m ' + aviso + '</div>';
+    /* OP-10: el obstáculo más alto se anota aquí, junto a la altura de RTH (es el mismo dato para los dos vuelos) */
+    return (verLista(S) === 'OP-10' ? obstHtml(S) : '') + '<div class="dato">Altura de RTH configurada <input type="number" inputmode="decimal" data-rth value="' + esc(S.ev[k].rth) + '"> m ' + aviso + '</div>';
   }
   return '';
 }
 function itemHtml(S, k, it) {
   var r = S.ev[k].items[it.id] || {};
   var cab = '<div class="tx"><small>' + it.id + '</small>' + esc(it.t) + ' <span class="sub">(' + it.p + ' pts)</span>' + (it.c ? ' <span class="tag crit">Crítico</span>' : '') + '</div>';
-  var est = it.destreza ? '<div class="sub" style="margin:6px 0">Se responde sola al terminar las órdenes: <b>' + (r.e === 'c' ? 'Sí' : r.e === 'n' ? 'No' : 'pendiente') + '</b></div>' :
+  var dx = it.destreza && !vieja(S) ? destreza(S, k) : null;
+  var est = dx ? '<div class="sub" style="margin:6px 0">Se califica sola con las órdenes: <b>' + (dx.completa ? num(dx.puntos) + ' de ' + it.p : 'pendiente') + '</b></div>' :
+    it.destreza ? '<div class="sub" style="margin:6px 0">Se responde sola al calificar las órdenes: <b>' + (r.e === 'c' ? 'Sí' : r.e === 'n' ? 'No' : 'pendiente') + '</b></div>' :
     '<div class="est"><button class="c' + (r.e === 'c' ? ' on' : '') + '" data-est="c">Sí</button><button class="n' + (r.e === 'n' ? ' on' : '') + '" data-est="n">No</button><button class="na' + (r.e === 'na' ? ' on' : '') + '" data-est="na">No aplica</button></div>';
-  return '<div class="it" id="it-' + it.id + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k) : '') + est +
+  return '<div class="it" id="it-' + k + '-' + it.id + '" data-k="' + k + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k, 'tp') : '') + (it.tarjeta_obs ? tarjetaHtml(S, otro(k), 'to') : '') + (it.trampa ? trampaHtml(S, it) : '') + est +
     datoHtml(S, k, it) +
     '<div class="extra"><textarea rows="1" data-nota placeholder="Anotación' + (r.e === 'n' ? ' (qué falló)' : '') + '">' + esc(r.nota || '') + '</textarea>' +
     '<label class="camara">📷<input type="file" accept="image/*" capture="environment" hidden data-cam></label></div>' +
     '<div class="fotos">' + (r.fotos || []).map(fotoHtml).join('') + '</div></div>';
 }
+/* contador de 30 s por orden: solo guía visual, no califica */
+var CRONO = null, TCRONO;
+function cronoTxt(k, i) { if (!CRONO || CRONO.k !== k || CRONO.i !== i) return ''; var s = Math.ceil((CRONO.fin - Date.now()) / 1000); return s > 0 ? s + ' s' : 'tiempo'; }
+function cronoTick() { var el = CRONO && document.getElementById('crono-' + CRONO.k + '-' + CRONO.i); if (el) { var t = cronoTxt(CRONO.k, CRONO.i); el.textContent = t; el.className = 'crono' + (t === 'tiempo' ? ' fin' : ''); } if (CRONO && Date.now() > CRONO.fin + 5000) { clearInterval(TCRONO); } }
 function destrezaHtml(S, k) {
-  var d = S.ev[k].des, x = destreza(S, k);
-  if (!d) return '<div class="tarj" style="border-color:var(--verde);background:var(--verde-s)">Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las órdenes antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear órdenes</button></div></div>';
-  var chip = function (i, j, v) { return '<button class="pil" data-dc="' + i + ',' + j + '" style="padding:6px 10px;font-size:13px;min-height:44px' + (v === 1 ? ';background:var(--verde-s);border-color:var(--verde);color:var(--verde-osc)' : v === 2 ? ';background:var(--rojo-s);border-color:var(--rojo);color:var(--rojo)' : '') + '">' + (v === 1 ? '✓ ' : v === 2 ? '✗ ' : '') + ['Lado correcto', 'Suave', 'Terminó bien'][j] + '</button>'; };
-  return '<div class="tarj" style="border-color:var(--verde);background:var(--verde-s)"><b>Destreza: ' + x.pts + ' de ' + x.max + '</b> · miradas a la pantalla: ' + d.mir +
-    (x.completa ? ' · <b style="color:' + (x.ok ? 'var(--verde)' : 'var(--rojo)') + '">' + (x.ok ? 'aprobada' : 'no aprobada') + '</b>' : '') +
-    '<div class="sub" style="margin:4px 0 8px">Lee cada orden en voz alta. Toca cada criterio: una vez = cumple, dos = no cumple. Aprueba con ' + D.minimo + ' de ' + x.max + ', máximo ' + D.miradas + ' miradas y sin intervención.</div>' +
+  var d = S.ev[k].des, x = destreza(S, k), caja = 'border-color:var(--verde);background:var(--verde-s)';
+  var norte = '<div class="msg info" style="margin:0 0 8px;font-weight:bold">🧭 ' + esc(D.aviso) + '</div>';
+  if (!d) return '<div class="tarj" style="' + caja + '">' + norte + 'Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las órdenes antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear órdenes</button></div></div>';
+  if (x.vieja) return '<div class="tarj" style="' + caja + '"><b>Destreza (lista ' + esc(S.plantilla) + '): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas</b> – ' + (x.ok ? 'aprobada' : x.completa ? 'no aprobada' : 'incompleta') + '<div class="sub">Sesión de una versión anterior: la destreza no se edita en esta versión.</div></div>';
+  if (x.op10) return '<div class="tarj" style="' + caja + '"><b>Destreza (lista OP-10): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas</b> – ' + (x.ok ? 'aprobada' : x.completa ? 'no aprobada' : 'incompleta') + '<div class="sub">Sesión de una versión anterior: la destreza no se edita en esta versión.</div></div>';
+  return '<div class="tarj" style="' + caja + '">' + norte + '<b>Destreza: órdenes ' + x.pts + ' de ' + x.max + ' · miradas ' + d.mir + ' → ' + (x.completa ? num(x.puntos) : '…') + ' de ' + D.valor + ' puntos</b>' +
+    '<div class="sub" style="margin:4px 0 8px">Toca la orden al dictarla (arranca ' + D.segundos + ' s). ' + D.notas.map(function (n) { return '<b>' + n[2] + ' (' + n[1] + ')</b>: ' + esc(n[3]); }).join(' · ') + '. Puntos = ' + D.valor + ' × órdenes / ' + x.max + ', menos 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª.</div>' +
     d.ord.map(function (o, i) {
-      return '<div style="border-top:1px solid var(--linea);padding:8px 0"><div><b>' + (i + 1) + '.</b> ' + esc(o) + (d.rep[i] ? ' <span class="tag bor">repetida</span>' : '') + '</div><div class="pils" style="margin-top:6px">' +
-        d.c[i].map(function (v, j) { return chip(i, j, v); }).join('') + '<button class="pil" data-dr="' + i + '" style="padding:6px 10px;font-size:13px;min-height:44px">' + (d.rep[i] ? 'Quitar repetición' : 'Repetir') + '</button></div></div>';
+      return '<div class="orden"><button class="ord-tx" data-do="' + i + '"><b>' + (i + 1) + '.</b> ' + esc(o) + ' <span class="crono" id="crono-' + k + '-' + i + '">' + cronoTxt(k, i) + '</span></button><div class="nota3">' +
+        D.notas.map(function (n) { return '<button class="' + n[0] + (d.v[i] === n[1] ? ' on' : '') + '" data-dv="' + i + ',' + n[1] + '">' + n[2] + '<small>' + n[1] + '</small></button>'; }).join('') + '</div></div>';
     }).join('') +
     '<div class="acciones"><button class="btn chico" id="d-mir">👁 Miró la pantalla (' + d.mir + ')</button><button class="btn chico" id="d-mirm">−1</button>' +
-    '<button class="btn chico peligro" id="d-int">' + (d.inter ? 'Quitar intervención' : 'Intervención de seguridad') + '</button><button class="btn chico" id="d-sort">Sortear otras</button></div></div>';
+    '<button class="btn chico" id="d-sort">Sortear otras</button></div></div>';
 }
-function quienes(S, k, it) { return it.tipo === 'conjunta' && S.ambos ? ['A', 'B'] : [k]; }
+function quienes(S, k, it) { return it.tipo === 'conjunta' && S.ambos && !individual(S) ? ['A', 'B'] : [k]; }
 function enlazarItem(S, k, id) {
-  var it = ITEMS.filter(function (x) { return x.id === id; })[0], cont = $('#it-' + id);
+  var it = itemPorId(S, id), cont = $('#it-' + k + '-' + id);
   Array.prototype.forEach.call(cont.querySelectorAll('[data-est]'), function (b) {
     b.onclick = function () {
       var v = b.getAttribute('data-est'), cur = (S.ev[k].items[id] || {}).e, nuevo = cur === v ? '' : v;
@@ -529,64 +669,89 @@ function enlazarItem(S, k, id) {
     };
   });
   if (it.destreza) enlazarDestreza(S, k, id, cont);
-  if (it.tarjeta) enlazarTarjeta(S, k);
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-tslot]'), function (c) { enlazarTarjeta(S, c.getAttribute('data-tf'), c.getAttribute('data-tslot'), c); });
   var ta = cont.querySelector('[data-nota]');
   ta.oninput = function () {
     quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); r.nota = ta.value.trim(); });
     clearTimeout(ta.t); ta.t = setTimeout(function () { guardarS(S); }, 400);
   };
   cont.querySelector('[data-cam]').onchange = function () { agregarFoto(S, k, id, this.files[0]); };
-  var ob = cont.querySelector('[data-obst]'); if (ob) { ob.oninput = function () { S.obst = ob.value; guardarS(S); }; ob.onchange = function () { if (ob.dataset.listo) return; ob.dataset.listo = '1'; evaluar(S, k); var y = $('#it-6'); if (y) y.scrollIntoView({ block: 'center' }); }; }
+  var ob = cont.querySelector('[data-obst]');
+  if (ob) { ob.oninput = function () { S.obst = ob.value; guardarS(S); }; ob.onchange = function () { if (ob.dataset.listo) return; ob.dataset.listo = '1'; refrescar(S, k, id); }; }
   var rt = cont.querySelector('[data-rth]'); if (rt) rt.onchange = function () { if (S.ev[k].rth === rt.value) return; S.ev[k].rth = rt.value; guardarS(S); refrescar(S, k, id); };
   enlazarFotos(S, k, cont);
 }
 function refrescar(S, k, id) {
-  var it = ITEMS.filter(function (x) { return x.id === id; })[0];
-  $('#it-' + id).outerHTML = itemHtml(S, k, it); enlazarItem(S, k, id); pintarFotos($('#it-' + id));
-  $('#sec-' + it.s + ' .cnt').innerHTML = contar(S, k, SEC[it.s]); barra(S, k);
-  var tabs = app.querySelectorAll('[data-tab] small');
-  ['A', 'B'].forEach(function (q, i) { tabs[i].textContent = 'vuela ' + (i + 1) + '.º · ' + (ITEMS.length - calcular(S, q).pend) + '/' + ITEMS.length; });
+  var it = itemPorId(S, id), el = $('#it-' + k + '-' + id);
+  el.outerHTML = itemHtml(S, k, it); enlazarItem(S, k, id); pintarFotos($('#it-' + k + '-' + id));
+  actualizarConteos(S);
 }
 function enlazarDestreza(S, k, id, cont) {
   var listo = function () { aplicarDestreza(S, k); guardarS(S); refrescar(S, k, id); };
   var so = cont.querySelector('#d-sort');
-  if (so) so.onclick = function () { if (S.ev[k].des && !confirm('¿Sortear otras órdenes? Se borra lo marcado.')) return; sortearOrdenes(S, k); listo(); };
-  Array.prototype.forEach.call(cont.querySelectorAll('[data-dc]'), function (b) { b.onclick = function () { var p = b.getAttribute('data-dc').split(','), c = S.ev[k].des.c[+p[0]]; c[+p[1]] = (c[+p[1]] + 1) % 3; listo(); }; });
-  Array.prototype.forEach.call(cont.querySelectorAll('[data-dr]'), function (b) { b.onclick = function () { var i = +b.getAttribute('data-dr'), d = S.ev[k].des; d.rep[i] = !d.rep[i]; if (d.rep[i]) d.c[i] = [0, 0, 0]; listo(); }; });
+  if (so) so.onclick = function () { if (S.ev[k].des && !confirm('¿Sortear otras órdenes? Se borra lo calificado.')) return; CRONO = null; sortearOrdenes(S, k); listo(); };
+  if (!S.ev[k].des || desViejo(S.ev[k].des)) return;
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-do]'), function (b) { b.onclick = function () { CRONO = { k: k, i: +b.getAttribute('data-do'), fin: Date.now() + D.segundos * 1000 }; clearInterval(TCRONO); TCRONO = setInterval(cronoTick, 250); cronoTick(); }; });
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-dv]'), function (b) { b.onclick = function () { var p = b.getAttribute('data-dv').split(','), d = S.ev[k].des, i = +p[0], v = +p[1]; d.v[i] = d.v[i] === v ? null : v; listo(); }; });
   var g = function (sel, fn) { var e = cont.querySelector(sel); if (e) e.onclick = function () { fn(S.ev[k].des); listo(); }; };
   g('#d-mir', function (d) { d.mir++; }); g('#d-mirm', function (d) { d.mir = Math.max(0, d.mir - 1); }); g('#d-int', function (d) { d.inter = !d.inter; });
 }
-function quienTarjeta(S, k, t) { return t.para === 'observador' ? S[otro(k)] : S[k]; }
-function tarjetaHtml(S, k) {
-  var t = tarjetaDe(S, k), q = t ? quienTarjeta(S, k, t) : '';
-  return '<div id="tarj"><div class="tarj">' + (t ? '<b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · para el <b>' + t.para + '</b>: ' + esc(q) + '<br><span class="sub">Situación:</span> ' + esc(t.situacion) +
-      '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Reporte esperado:</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span>' +
+/* trampas: tarjeta solo para el evaluador (nunca se muestra a los pilotos) */
+function trampaHtml(S, it) {
+  var f = it.trampa === 1 ? 'A' : 'B';
+  return '<div class="tarj no-print" style="border-color:var(--rojo);background:var(--rojo-s)"><b>Solo para el evaluador · vuelo ' + it.trampa + ' (pilota ' + esc(nombre1(S[f])) + ')</b><br>' + esc(P.trampas[String(it.trampa)]) + '<div class="sub">No se la muestres a nadie: es una orden que debes dar de palabra.</div></div>';
+}
+/* pasos del vuelo en orden; el actual es el primero que falta */
+function pasoActual(S, f) {
+  var it = S.ev[f].items, g = otro(f), L = itemsDe(S), id = function (fn) { var x = L.filter(fn)[0]; return x ? x.id : ''; };
+  var resp = function (q, i) { return !!(S.ev[q].items[i] || {}).e; };
+  var idx = function (n) { return L[n - 1] ? L[n - 1].id : ''; };
+  var hechos = [
+    ['15', '16', '17'].every(function (i) { return resp(f, i); }),
+    destreza(S, f).completa,
+    individual(S) || resp(g, id(function (x) { return x.tarjeta_obs; })),
+    resp(f, id(function (x) { return x.trampa === (f === 'A' ? 1 : 2); })),
+    resp(f, id(function (x) { return x.tarjeta; })),
+    ['21', '22'].every(function (i) { return resp(f, i); })];
+  var n = hechos.indexOf(false); return n < 0 ? P.pasos.length : n;
+}
+function pasosLinea(S, f, corto) {
+  var a = pasoActual(S, f);
+  return P.pasos.map(function (p, i) { var t = corto ? p.split(' (')[0].split(',')[0] : p; return '<span class="paso' + (i === a ? ' on' : i < a ? ' ok' : '') + '">' + (i + 1) + ' ' + esc(t) + '</span>'; }).join(corto ? ' → ' : '');
+}
+function pasosHtml(S, f) { return '<div class="pasos" id="pasos-' + f + '"><b>Orden del vuelo de ' + esc(nombre1(S[f])) + ':</b> ' + pasosLinea(S, f, false) + '</div>'; }
+/* f = dueño del vuelo; la tarjeta «tp» se le muestra a él y la «to» a su observador (el compañero) */
+function quienTarjeta(S, f, t) { return t.para === 'observador' ? S[otro(f)] : S[f]; }
+function tarjetaHtml(S, f, slot) {
+  var t = tarjetaDe(S, f, slot), q = t ? quienTarjeta(S, f, t) : '', para = SLOT[slot].para;
+  return '<div data-tf="' + f + '" data-tslot="' + slot + '"><div class="tarj">' + '<div class="sub" style="font-weight:bold">' + (slot === 'tp' ? 'Tarjeta para ' + esc(nombre1(S[f])) + ' (piloto)' : 'Tarjeta para ' + esc(nombre1(S[otro(f)])) + ' (observador)') + '</div>' +
+    (t ? '<b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · para el <b>' + t.para + '</b>: ' + esc(q) + '<br><span class="sub">Situación:</span> ' + esc(t.situacion) +
+      '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + (slot === 'tp' && nivel(t) === 'alto' ? '<br><b>Pregúntale: «' + PREGUNTA_ALTO + '»</b> <span class="sub">(lo que responda también cuenta en esta pregunta)</span>' : '') + (slot === 'tp' ? '<br><span class="sub">Reporte que le corresponde:</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span>' : '') +
       (t.tiempo ? '<br><span class="sub">' + esc(t.clase) + ' · tiempo ' + esc(t.tiempo) + '</span>' : '') : '<span class="sub">Sin tarjeta todavía.</span>') +
-    '<div class="acciones">' + (t ? '<button class="btn pri chico" data-mos="tp">Mostrar a ' + esc(nombre1(q)) + '</button>' : '') +
-    '<button class="btn chico" data-sort="tp">' + (t ? 'Sortear otra' : 'Sortear tarjeta') + '</button>' +
-    '<select class="btn chico" data-elige="tp"><option value="">o elegir…</option>' + GRUPOS.map(function (g) {
-      var L = P.tarjetas.filter(function (x) { return grupoT(x) === g[0]; });
-      return L.length ? '<optgroup label="' + g[1] + '">' + L.map(function (x) { return '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.id + ' · ' + x.t + ' (' + x.para + ')') + '</option>'; }).join('') + '</optgroup>' : '';
+    '<div class="acciones">' + (t ? '<button class="btn pri chico" data-mos>Mostrar a ' + esc(nombre1(q)) + '</button>' : '') +
+    '<button class="btn chico" data-sort>' + (t ? 'Sortear otra' : 'Sortear tarjeta') + '</button>' +
+    '<select class="btn chico" data-elige><option value="">o elegir…</option>' + GRUPOS.map(function (g) {
+      var L = P.tarjetas.filter(function (x) { return x.para === para && grupoT(x) === g[0]; });
+      return L.length ? '<optgroup label="' + g[1] + '">' + L.map(function (x) { return '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.id + ' · ' + x.t) + '</option>'; }).join('') + '</optgroup>' : '';
     }).join('') + '</select></div></div></div>';
 }
-function enlazarTarjeta(S, k) {
-  var poner = function (id) { var t = buscarTarjeta(id); S.ev[k].tp = id; S.ev[k].tarjeta = t ? JSON.parse(JSON.stringify(t)) : null; guardarS(S); $('#tarj').outerHTML = tarjetaHtml(S, k); enlazarTarjeta(S, k); if ($('#rep-ev')) { $('#rep-ev').innerHTML = reporteHtml(S, k); enlazarReportes(S, $('#rep-ev')); } };
-  if (!$('[data-sort]')) return;
-  $('[data-sort]').onclick = function () {
-    var otraT = tarjetaDe(S, otro(k));
-    /* solo las ejecutables en vuelo que no son de tiempo alto (caben en la prueba); sin repetir en la sesión */
-    var ops = P.tarjetas.filter(function (x) { return grupoT(x) === 'vuelo' && x.id !== S.ev[otro(k)].tp && x.id !== S.ev[k].tp; });
-    /* sin dos de la misma familia en la sesión */
-    var fam = otraT && otraT.familias || [], sf = ops.filter(function (x) { return !(x.familias || []).some(function (f) { return fam.indexOf(f) >= 0; }); });
+function usadas(S, f, slot) { var u = []; ['A', 'B'].forEach(function (g) { ['tp', 'to'].forEach(function (s) { if (g === f && s === slot) return; var t = tarjetaDe(S, g, s); if (t) u.push(t); }); }); return u; }
+function enlazarTarjeta(S, f, slot, c) {
+  var redibujar = function () { var n = document.querySelector('[data-tf="' + f + '"][data-tslot="' + slot + '"]'); if (!n) return; var tmp = document.createElement('div'); tmp.innerHTML = tarjetaHtml(S, f, slot); var nuevo = tmp.firstChild; n.parentNode.replaceChild(nuevo, n); enlazarTarjeta(S, f, slot, nuevo); };
+  var poner = function (id) { var t = buscarTarjeta(id); S.ev[f][slot] = id; S.ev[f][SLOT[slot].copia] = t ? JSON.parse(JSON.stringify(t)) : null; guardarS(S); redibujar(); };
+  c.querySelector('[data-sort]').onclick = function () {
+    var u = usadas(S, f, slot), ids = u.map(function (t) { return t.id; }), fam = [];
+    u.forEach(function (t) { fam = fam.concat(t.familias || []); });
+    /* sin repetir tarjeta ni familia en la pareja */
+    var ops = P.tarjetas.filter(function (x) { return sorteable(x, slot) && ids.indexOf(x.id) < 0 && x.id !== S.ev[f][slot]; });
+    var sf = ops.filter(function (x) { return !(x.familias || []).some(function (y) { return fam.indexOf(y) >= 0; }); });
     if (sf.length) ops = sf;
-    /* se alterna: si en el otro vuelo la tarjeta fue para el piloto, en este va para el observador (y al revés) */
-    var alt = otraT ? ops.filter(function (x) { return x.para !== otraT.para; }) : ops;
-    if (alt.length) ops = alt;
-    poner(ops[Math.floor(Math.random() * ops.length)].id);
+    if (ops.length) poner(ops[Math.floor(Math.random() * ops.length)].id);
   };
-  $('[data-elige]').onchange = function () { if (this.value) poner(this.value); };
-  if ($('[data-mos]')) $('[data-mos]').onclick = function () {
-    var t = tarjetaDe(S, k), q = quienTarjeta(S, k, t);
+  c.querySelector('[data-elige]').onchange = function () { if (this.value) poner(this.value); };
+  var mo = c.querySelector('[data-mos]');
+  if (mo) mo.onclick = function () {
+    var t = tarjetaDe(S, f, slot), q = quienTarjeta(S, f, t);
     var m = $('#mostrar'); m.innerHTML = '<div class="p">' + esc(nombre1(q)) + ' (' + t.para + ')</div><div class="q">' + esc(t.situacion) + '</div><div class="c">Toca la pantalla para cerrar</div>';
     m.classList.add('on'); m.onclick = function () { m.classList.remove('on'); };
   };
@@ -611,30 +776,30 @@ function agregarFoto(S, k, id, file) {
   comprimir(file).then(function (blob) {
     var fid = 'f' + uid();
     return guardarFoto(fid, blob).then(function () {
-      if (id) { var it = ITEMS.filter(function (x) { return x.id === id; })[0]; quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); (r.fotos = r.fotos || []).push(fid); }); }
+      if (id) { var it = itemPorId(S, id); quienes(S, k, it).forEach(function (q) { var r = S.ev[q].items[id] || (S.ev[q].items[id] = {}); (r.fotos = r.fotos || []).push(fid); }); }
       else (S.fotosGen = S.fotosGen || []).push(fid);
       return guardarS(S);
-    }).then(function () { var c = id ? $('#it-' + id + ' .fotos') : $('#fg'); c.insertAdjacentHTML('beforeend', fotoHtml(fid)); pintarFotos(c); enlazarFotos(S, k, c); });
+    }).then(function () { var c = id ? $('#it-' + k + '-' + id + ' .fotos') : $('#fg'); c.insertAdjacentHTML('beforeend', fotoHtml(fid)); pintarFotos(c); enlazarFotos(S, k, c); });
   }).catch(function (er) { modal('<h2>No se pudo guardar la foto</h2><p>' + esc(er.message) + '</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; });
 }
 function terminar(S, k) {
   guardarS(S);
   var falt = [];
-  ['A', 'B'].forEach(function (q) { ITEMS.forEach(function (it) { if (!(S.ev[q].items[it.id] || {}).e) falt.push([q, it]); }); });
+  evaluados(S).forEach(function (q) { itemsDe(S).forEach(function (it) { if (!(S.ev[q].items[it.id] || {}).e) falt.push([q, it]); }); });
   if (falt.length) {
-    modal('<h2>Faltan ' + falt.length + ' ítems por evaluar</h2><p>Responde cada pregunta (sí, no o no aplica) para los dos pilotos; la de destreza se responde al terminar las órdenes.</p><p class="sub">' +
+    modal('<h2>Faltan ' + falt.length + ' ítems por evaluar</h2><p>Responde cada pregunta (sí, no o no aplica) para los dos pilotos; la de destreza se responde al calificar las órdenes.</p><p class="sub">' +
       falt.slice(0, 8).map(function (x) { return esc(nombre1(S[x[0]])) + ' – ' + x[1].id + ' ' + esc(x[1].t); }).join('<br>') + (falt.length > 8 ? '<br>…' : '') + '</p>' +
       '<div class="acciones"><button class="btn pri" id="m-ir">Ir al primero</button><button class="btn" id="m-no">Cerrar</button></div>');
     $('#m-no').onclick = cerrar;
-    $('#m-ir').onclick = function () { cerrar(); var q = falt[0][0], it = falt[0][1]; ABIERTA[it.s] = true; evaluar(S, q); setTimeout(function () { $('#it-' + it.id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50); };
+    $('#m-ir').onclick = function () { cerrar(); var q = falt[0][0], it = falt[0][1]; var tb = tabDe(S, q, it); evaluar(S, tb); setTimeout(function () { ($('#it-' + q + '-' + it.id) || $('#it-A-' + it.id)).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50); };
     return;
   }
-  var res = ['A', 'B'].map(function (q) { var r = calcular(S, q); return '<p><b>' + esc(S[q]) + ':</b> <span style="font-size:22px;font-weight:bold;color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + r.pts + ' – ' + (r.aprobado ? 'aprueba' : 'no aprueba') + '</span>' + (r.crit.length ? '<br><span class="sub">Críticos incumplidos: ' + r.crit.map(function (x) { return x.id; }).join(', ') + '</span>' : '') + '</p>'; }).join('');
-  modal('<h2>Resultados</h2>' + res + '<p class="sub">Nota mínima: ' + S.nota + '. Al cerrar, la prueba queda finalizada y ya no se puede editar; solo el registro del reporte de cada piloto (se puede marcar después).</p><div class="acciones"><button class="btn pri" id="m-cer">Cerrar la prueba</button><button class="btn" id="m-no">Seguir editando</button></div>');
+  var res = evaluados(S).map(function (q) { var r = calcular(S, q); return '<p><b>' + esc(S[q]) + ':</b> <span style="font-size:22px;font-weight:bold;color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + num(r.pts) + ' – ' + (r.aprobado ? 'aprueba' : 'no aprueba') + '</span>' + '<br><span class="sub">' + esc(perdioTxt(r)) + '</span>' + (r.crit.length ? '<br><span class="sub">Críticos incumplidos: ' + r.crit.map(function (x) { return x.id; }).join(', ') + '</span>' : '') + '</p>'; }).join('');
+  modal('<h2>Resultados</h2>' + res + '<p class="sub">Nota mínima: ' + S.nota + '. Al cerrar, la prueba queda finalizada y ya no se puede editar.</p><div class="acciones"><button class="btn pri" id="m-cer">Cerrar la prueba</button><button class="btn" id="m-no">Seguir editando</button></div>');
   $('#m-no').onclick = cerrar;
   $('#m-cer').onclick = function () {
     cerrar(); S.estado = 'final'; S.fin = Date.now();
-    S.resultado = {}; ['A', 'B'].forEach(function (q) { var r = calcular(S, q); S.resultado[q] = { pts: r.pts, aprobado: r.aprobado, crit: r.crit.map(function (x) { return x.id; }) }; });
+    S.resultado = {}; evaluados(S).forEach(function (q) { var r = calcular(S, q); S.resultado[q] = { pts: r.pts, aprobado: r.aprobado, crit: r.crit.map(function (x) { return x.id; }) }; });
     S.resumen = resumen(S);
     guardarS(S).then(function () { informe(S); });
   };
@@ -649,22 +814,25 @@ function informePiloto(S, k, primero) {
   var r = calcular(S, k), e = S.ev[k], dur = S.fin ? Math.round((S.fin - S.inicio) / 60000) : '';
   return '<div class="hoja inf' + (primero ? '' : ' salto') + '"><h1>Prueba operacional – Pilotos UAS</h1>' +
     '<table><tr><th>Piloto evaluado</th><td>' + esc(S[k]) + '</td><th>Vuela</th><td>' + (k === 'A' ? 'Primero' : 'Segundo') + '</td></tr>' +
-    '<tr><th>Compañero (observador)</th><td>' + esc(S[otro(k)]) + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
+    '<tr><th>' + (individual(S) ? 'Acompañante (no evaluado)' : 'Compañero (observador)') + '</th><td>' + esc(S[otro(k)]) + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
     '<tr><th>Lugar</th><td>' + esc(S.lugar || '–') + (S.gps ? '<br><span class="sub">' + S.gps.join(', ') + '</span>' : '') + '</td><th>Dron</th><td>' + esc(S.dron || '–') + '</td></tr>' +
     '<tr><th>Inicio</th><td>' + fmt(S.inicio) + '</td><th>Duración</th><td>' + (dur !== '' ? dur + ' min' : '–') + '</td></tr>' +
-    '<tr><th>Obstáculo más alto</th><td>' + (S.obst !== '' ? S.obst + ' m' : '–') + '</td><th>Altura de RTH</th><td>' + (e.rth !== '' ? e.rth + ' m' : '–') + '</td></tr>' +
+    (vieja(S) ? '<tr><th>Obstáculo más alto</th><td>' + (S.obst !== '' ? S.obst + ' m' : '–') + '</td><th>Altura de RTH</th><td>' + (e.rth !== '' ? e.rth + ' m' : '–') + '</td></tr>' : '') +
     '<tr><th>Evaluador</th><td>' + esc(S.evaluador || '–') + '</td><th>Lista</th><td>' + esc(S.plantilla) + '</td></tr></table>' +
-    '<div class="res" style="margin:14px 0 6px"><span class="pts' + (r.aprobado ? '' : ' no') + '">' + r.pts + '</span><span class="ver" style="color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + (r.aprobado ? 'Aprueba' : 'No aprueba') + '</span>' +
-    '<span class="sub">' + r.c + ' sí · ' + r.n + ' no · ' + r.na + ' no aplica · nota mínima ' + r.nota + '</span></div>' +
+    '<div class="res" style="margin:14px 0 6px"><span class="pts' + (r.aprobado ? '' : ' no') + '">' + num(r.pts) + '</span><span class="ver" style="color:' + (r.aprobado ? 'var(--verde)' : 'var(--rojo)') + '">' + (r.aprobado ? 'Aprueba' : 'No aprueba') + '</span>' +
+    '<span class="sub">' + (vieja(S) ? r.c + ' sí · ' + r.n + ' no · ' : num(r.obtenidos) + ' de ' + r.posibles + ' puntos · ') + r.na + ' no aplica · nota mínima ' + r.nota + '</span></div>' +
+    (!vieja(S) ? '<div class="msg ' + (r.perdidos.length ? 'err' : 'ok') + '">' + esc(perdioTxt(r)) + '</div>' : '') +
     (r.crit.length ? '<div class="msg err">Incumplió ítems críticos: ' + r.crit.map(function (it) { return it.id + ' – ' + esc(it.t); }).join('; ') + '.</div>' : '') +
-    tarjetasDe(S, k).map(function (t) { return '<div class="tarj" style="margin:10px 0"><b>Contingencia en su vuelo: ' + esc(t.id) + ' · ' + esc(t.t) + '</b> (se le mostró al ' + t.para + ': ' + esc(t.para === 'observador' ? S[otro(k)] : S[k]) + ')<br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Reporte esperado:</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span></div>'; }).join('') +
-    reporteHtml(S, k) +
-    (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas' + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
-      d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b>' + (d.rep[i] ? ' (repetida)' : '') + d.c[i].map(function (v, j) { return v === 2 ? ', falló: ' + D.criterios[j].toLowerCase() : ''; }).join('') + '</span>'; }).join('') + '</div>'; })() +
-    '<div class="secs">' + P.secciones.map(function (s) {
+    ['tp', 'to'].map(function (slot) { var f = slot === 'tp' ? k : otro(k), t = tarjetaDe(S, f, slot); if (!t) return ''; return '<div class="tarj" style="margin:10px 0"><b>' + (slot === 'tp' ? 'Contingencia en su vuelo (como piloto): ' : 'Contingencia como observador (vuelo de ' + esc(S[f]) + '): ') + esc(t.id) + ' · ' + esc(t.t) + '</b> (se le mostró a ' + esc(quienTarjeta(S, f, t)) + ')<br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '</div>'; }).join('') +
+    (repEsperado(S, k) ? '<div class="tarj" style="margin:10px 0"><b>Reporte que le corresponde: ' + repTxt(repEsperado(S, k)) + '</b> <span class="sub">(se verifica en el informe del PC)</span></div>' : '') +
+    (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas' + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.puntos != null ? num(x.puntos) + ' de ' + D.valor + ' puntos' : x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
+      (x.vieja ? d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep && d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b></span>'; }).join('')
+        : d.ord.map(function (o, i) { var n = D.notas.filter(function (z) { return z[1] === d.v[i]; })[0]; return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + (n ? n[2] + ' (' + n[1] + ')' : 'sin calificar') + '</b></span>'; }).join('')) + '</div>'; })() +
+    '<div class="secs">' + lista(S).secciones.map(function (s) {
       return '<h2 style="margin-top:14px">' + s.id + '. ' + esc(tituloSec(S, k, s)) + '</h2><table><tr><th style="width:34px">#</th><th>Pregunta (puntos)</th><th style="width:80px">Respuesta</th></tr>' +
         s.items.map(function (it) {
           var x = e.items[it.id] || {}, st = ESTX[x.e] || ['Sin evaluar', 'na'];
+          if (!vieja(S)) { var dq = r.preguntas.filter(function (q) { return q.id === it.id; })[0]; st = dq.obtenido == null ? (x.e === 'na' ? ['No aplica', 'na'] : ['Sin evaluar', 'na']) : [(it.destreza ? '' : (x.e === 'c' ? 'Sí ' : 'No ')) + num(dq.obtenido) + '/' + it.p, dq.obtenido < it.p ? 'mal' : 'ok']; }
           return '<tr><td>' + it.id + (it.c ? '<br><span class="tag crit">C</span>' : '') + '</td><td>' + esc(it.t) + ' <span class="sub">(' + it.p + ')</span>' + (x.nota ? '<br><i>' + esc(x.nota) + '</i>' : '') +
             ((x.fotos || []).length ? '<div class="fotos">' + x.fotos.map(function (f) { return '<img data-foto="' + f + '" alt="Foto">'; }).join('') + '</div>' : '') + '</td><td class="' + st[1] + '">' + st[0] + '</td></tr>';
         }).join('') + '</table>';
@@ -677,8 +845,8 @@ function informePiloto(S, k, primero) {
 function informe(S) {
   $('#barra').style.display = 'none'; clearInterval(TICK);
   app.innerHTML = '<div class="hoja no-print"><div class="acciones" style="margin:0"><button class="btn pri" id="i-pdf">Imprimir / guardar PDF</button><button class="btn" id="i-comp">Compartir respaldo</button><button class="btn" id="i-vol">Volver</button></div></div>' +
-    informePiloto(S, 'A', true) + informePiloto(S, 'B', false);
-  pintarFotos(app); enlazarReportes(S, app);
+    informePiloto(S, 'A', true) + (individual(S) ? '' : informePiloto(S, 'B', false));
+  pintarFotos(app);
   $('#i-pdf').onclick = function () { document.title = 'Prueba operacional – ' + S.A + ' y ' + S.B; window.print(); document.title = 'Evaluación operacional – Pilotos UAS EPM'; };
   $('#i-vol').onclick = inicio; $('#i-comp').onclick = function () { exportar([S]); };
 }
@@ -696,7 +864,7 @@ function exportar(L) {
     var nom = 'pruebas_operacionales_' + hoy() + (L.length === 1 ? '_' + norm(L[0].A + ' ' + L[0].B).replace(/[^a-z0-9]+/g, '_') : '') + '.json';
     /* el resumen por piloto se recalcula al exportar (también para sesiones de EVAL-OP 8 importadas) */
     var ses = L.map(function (S) { return S.estado === 'final' ? Object.assign({}, S, { resumen: resumen(S) }) : S; });
-    compartir(new File([JSON.stringify({ app: 'evop3', esquema: 'evop-resumen-1', version: VERSION, exportado: Date.now(), sesiones: ses, fotos: fotos })], nom, { type: 'application/json' }));
+    compartir(new File([JSON.stringify({ app: 'evop3', esquema: 'evop-resumen-3', version: VERSION, exportado: Date.now(), sesiones: ses, fotos: fotos })], nom, { type: 'application/json' }));
   });
 }
 function importar(f) {
@@ -713,14 +881,17 @@ function importar(f) {
   fr.readAsText(f);
 }
 function exportarCSV(L) {
-  var cab = ['Piloto', 'Vuela', 'Observador', 'Tipo', 'Lugar', 'Dron', 'Evaluador', 'Inicio', 'Duración (min)', 'Estado', 'Puntaje', 'Resultado', 'Críticas incumplidas', 'Sí', 'No', 'No aplica', 'Obstáculo (m)', 'RTH (m)', 'Destreza (de 24)', 'Miradas a la pantalla', 'Intervención', 'Contingencia de su vuelo', 'Reporte esperado', 'Reporte hecho', 'Fecha del registro del reporte', 'Nota del reporte', 'Observaciones'].concat(ITEMS.map(function (it) { return 'P' + it.id; }));
+  var cab = ['Piloto', 'Vuela', 'Observador', 'Tipo', 'Lugar', 'Dron', 'Evaluador', 'Lista', 'Inicio', 'Duración (min)', 'Estado', 'Puntaje', 'Resultado', 'Puntos obtenidos', 'Puntos posibles', 'Perdió', 'No aplica', 'Destreza: órdenes (de 16)', 'Destreza: puntos (de 10)', 'Miradas a la pantalla', 'Contingencia de su vuelo', 'Tarjeta como observador', 'Reporte que le corresponde', 'Observaciones'].concat(LISTA.items.map(function (it) { return 'P' + it.id; }));
   var filas = [cab];
   L.forEach(function (S) {
-    ['A', 'B'].forEach(function (k) {
-      var r = calcular(S, k), ts = tarjetasDe(S, k);
-      filas.push([S[k], k === 'A' ? '1.º' : '2.º', S[otro(k)], S.tipo, S.lugar, S.dron, S.evaluador, fmt(S.inicio), S.fin ? Math.round((S.fin - S.inicio) / 60000) : '', S.estado === 'final' ? 'Finalizada' : 'En curso',
-        r.pts, S.estado === 'final' ? (r.aprobado ? 'Aprueba' : 'No aprueba') : '', r.crit.map(function (x) { return x.id; }).join(' '), r.c, r.n, r.na, S.obst, S.ev[k].rth, S.ev[k].des ? destreza(S, k).pts : '', S.ev[k].des ? S.ev[k].des.mir : '', S.ev[k].des && S.ev[k].des.inter ? 'Sí' : '', ts.map(function (t) { return t.t + ' (' + t.para + ')'; }).join(' / '), repTxt(repEsperado(S, k)).replace('–', ''), REPCSV[repEstado(S, k)], fmt(repDe(S, k).fecha), repDe(S, k).nota || '', S.ev[k].obs || '']
-        .concat(ITEMS.map(function (it) { var x = (S.ev[k].items[it.id] || {}).e; return x === 'c' ? it.p : x === 'n' ? 0 : x === 'na' ? 'NA' : ''; })));
+    evaluados(S).forEach(function (k) {
+      var r = calcular(S, k), t1 = tarjetaDe(S, k, 'tp'), t2 = tarjetaDe(S, otro(k), 'to'), dx = S.ev[k].des ? destreza(S, k) : null, act = !vieja(S);
+      filas.push([S[k], k === 'A' ? '1.º' : '2.º', nombreComp(S, k), S.tipo, S.lugar, S.dron, S.evaluador, S.plantilla, fmt(S.inicio), S.fin ? Math.round((S.fin - S.inicio) / 60000) : '', S.estado === 'final' ? 'Finalizada' : 'En curso',
+        num(r.pts), S.estado === 'final' ? (r.aprobado ? 'Aprueba' : 'No aprueba') : '', act ? num(r.obtenidos) : '', act ? r.posibles : '', act ? perdioTxt(r).replace(/^Perdió: /, '').replace('No perdió puntos', '') : r.crit.map(function (x) { return 'crítica ' + x.id; }).join(' '), r.na,
+        dx ? (dx.vieja ? dx.pts + '/' + dx.max : dx.pts) : '', dx && act && dx.completa ? num(dx.puntos) : '', S.ev[k].des ? S.ev[k].des.mir : '',
+        t1 ? t1.id + ' ' + t1.t : '', t2 ? t2.id + ' ' + t2.t : '', repEsperado(S, k) ? repTxt(repEsperado(S, k)) : '', S.ev[k].obs || '']
+        /* P1… son las preguntas de OP-11 (puntos obtenidos, NA si no aplica); en sesiones anteriores quedan vacías (otra numeración) */
+        .concat(LISTA.items.map(function (it) { if (!act) return ''; var q = r.preguntas.filter(function (x) { return x.id === it.id; })[0], e = (S.ev[k].items[it.id] || {}).e; return q.obtenido != null ? num(q.obtenido) : e === 'na' ? 'NA' : ''; })));
     });
   });
   var txt = '\ufeff' + filas.map(function (f) { return f.map(function (c) { c = String(c == null ? '' : c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';'); }).join('\r\n');
@@ -728,7 +899,8 @@ function exportarCSV(L) {
 }
 
 /* ---------- Arranque ---------- */
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+/* el service worker funciona en HTTPS (GitHub Pages) y en localhost (pruebas) */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) navigator.serviceWorker.register('sw.js');
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 abrir().then(inicio).catch(function (e) { app.innerHTML = '<div class="msg err">No se pudo abrir el almacenamiento del celular: ' + esc(e && e.message) + '</div>'; });
 </script>
