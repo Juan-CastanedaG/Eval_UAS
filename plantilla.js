@@ -1,22 +1,21 @@
-/* Prueba operacional de pilotos UAS de EPM – lista OP-12 (nov 2026, vista previa, escenarios ESC-4).
+/* Prueba operacional de pilotos UAS de EPM – lista OP-13 (nov 2026, escenarios ESC-4). Reloj de 50 min: la explicación y las dudas van antes de «Empezar».
    28 preguntas que suman 100 puntos (p = puntos). Ninguna es crítica: aprueba con puntaje ≥ 90 (nota mínima).
    Puntaje = puntos obtenidos / puntos posibles de las preguntas que aplican × 100, con un decimal.
-   Destreza (10 puntos, proporcional): 10 × (puntos de las 8 órdenes / 16) − 1 por cada mirada a la pantalla después de la 2.ª (mínimo 0).
+   Destreza (10 puntos, proporcional): N maniobras sorteadas (Ajustes, 4–12, por defecto 8), sin regreso ni aterrizaje; 10 × (puntos / 2N) − 1 por cada mirada a la pantalla después de la 2.ª (mínimo 0).
    Trampas (conjuntas): «trampa» = vuelo 1 o 2; su texto (trampas) solo lo ve el evaluador. pasos: orden de cada vuelo.
    secciones_op10/destreza_op10 y secciones_op9/destreza_op9: listas anteriores, solo para leer sesiones y respaldos viejos.
    El bloque entre las marcas «ESCENARIOS» lo genera escenarios_a_plantilla.py: no editarlo a mano. tarjetas_op8: las 20 tarjetas de EVAL-OP 8. */
 window.PLANTILLA = {
-  version: 'OP-12',
+  version: 'OP-13',
   lugar: 'COM San Nicolás',
-  minutos: 60,
+  minutos: 50,
   cronograma: [
-    { de: 0, a: 3, t: 'Explicación de la prueba' },
-    { de: 3, a: 15, t: 'Preparación en sitio y dronpuerto (juntos)' },
-    { de: 15, a: 29, t: 'Vuelo 1: pilota {A}, observa {B}', vuelo: 'A' },
-    { de: 29, a: 31, t: 'Bitácora del vuelo 1 y cambio de roles' },
-    { de: 31, a: 45, t: 'Vuelo 2: pilota {B}, observa {A}', vuelo: 'B' },
-    { de: 45, a: 55, t: 'Post-vuelo, bitácora y cierre (juntos)' },
-    { de: 55, a: 60, t: 'Margen y retroalimentación' }
+    { de: 0, a: 9, t: 'Preparación en sitio y dronpuerto (juntos)' },
+    { de: 9, a: 23, t: 'Vuelo 1: pilota {A}, observa {B}', vuelo: 'A' },
+    { de: 23, a: 25, t: 'Bitácora del vuelo 1 y cambio de roles' },
+    { de: 25, a: 39, t: 'Vuelo 2: pilota {B}, observa {A}', vuelo: 'B' },
+    { de: 39, a: 47, t: 'Post-vuelo, bitácora y cierre (juntos)' },
+    { de: 47, a: 50, t: 'Margen y retroalimentación' }
   ],
   secciones: [
    {
@@ -245,10 +244,7 @@ window.PLANTILLA = {
     "Sube 10 m.",
     "Baja 5 m."
    ],
-   "combinaciones": 6,
    "maximo_m": 30,
-   "regreso": "Vuelve sobre el dronpuerto con la nariz al {p}.",
-   "final": "Aterriza en el TLOF con la nariz al {p}.",
    "notas": [
     [
      "b",
@@ -272,7 +268,12 @@ window.PLANTILLA = {
    "segundos": 30,
    "miradas": 2,
    "valor": 10,
-   "miradas_libres": 2
+   "miradas_libres": 2,
+   "maniobras": {
+    "defecto": 8,
+    "minimo": 4,
+    "maximo": 12
+   }
   },
   trampas: {
    "1": "Pide: «Sube a 70 m para tomar la foto general». Si empieza a subir, detenlo antes de los 60 m.",
@@ -280,7 +281,7 @@ window.PLANTILLA = {
   },
   pasos: [
    "Despegue, estacionario, C2 y comandos",
-   "Destreza (8 órdenes)",
+   "Destreza ({N} maniobras)",
    "Tarjeta del observador",
    "Trampa",
    "Tarjeta del piloto (de última: puede terminar en aterrizaje)",
@@ -460,46 +461,6 @@ window.PLANTILLA = {
    }
   ],
   destreza_op10: {
-   "puntos": {
-    "N": "November",
-    "S": "Sierra",
-    "E": "Echo",
-    "W": "Whiskey"
-   },
-   "aviso": "Indica a los pilotos dónde queda el November (norte) desde el dronpuerto.",
-   "horizontal": [
-    10,
-    15
-   ],
-   "vertical": [
-    "Sube 10 m.",
-    "Baja 5 m."
-   ],
-   "combinaciones": 6,
-   "maximo_m": 30,
-   "regreso": "Vuelve sobre el dronpuerto con la nariz al {p}.",
-   "final": "Aterriza en el TLOF con la nariz al {p}.",
-   "notas": [
-    [
-     "b",
-     2,
-     "Bien",
-     "fue directo y parejo y se detuvo donde se pidió"
-    ],
-    [
-     "r",
-     1,
-     "Corrigió",
-     "arrancó mal o se pasó, pero llegó solo dentro del tiempo"
-    ],
-    [
-     "n",
-     0,
-     "No la hizo",
-     "no llegó, terminó en otro punto, hubo que repetirle la orden o intervenir"
-    ]
-   ],
-   "segundos": 30,
    "minimo": 12,
    "miradas": 2
   },
@@ -687,76 +648,6 @@ window.PLANTILLA = {
    }
   ],
   destreza_op9: {
-   "tipos": [
-    [
-     "nariz",
-     "Nariz hacia el piloto"
-    ],
-    [
-     "lado",
-     "Nariz de lado"
-    ],
-    [
-     "guinada",
-     "Guiñada"
-    ],
-    [
-     "alabeo",
-     "Alabeo"
-    ],
-    [
-     "cabeceo",
-     "Cabeceo"
-    ],
-    [
-     "altura",
-     "Altura"
-    ],
-    [
-     "regreso",
-     "Regreso"
-    ]
-   ],
-   "final": "Aterriza en el TLOF con la nariz hacia ti.",
-   "ordenes": {
-    "nariz": [
-     "Nariz hacia ti. Desplázate 10 m a tu derecha.",
-     "Nariz hacia ti. Desplázate 10 m a tu izquierda.",
-     "Nariz hacia ti. Aléjate 15 m en línea recta."
-    ],
-    "lado": [
-     "Nariz a tu derecha. Avanza 10 m hacia el frente.",
-     "Nariz a tu izquierda. Vuelve sobre el dronpuerto.",
-     "Nariz a tu derecha. Desplázate 10 m hacia ti."
-    ],
-    "guinada": [
-     "Gira la nariz 90° a la derecha, sin desplazarte.",
-     "Gira la nariz hacia ti, sin desplazarte.",
-     "Gira la nariz hacia un punto de referencia que te indique, sin desplazarte."
-    ],
-    "alabeo": [
-     "Alabeo: desplázate 5 m a la derecha del dron, sin girar la nariz.",
-     "Alabeo: desplázate 5 m a la izquierda del dron, sin girar la nariz."
-    ],
-    "cabeceo": [
-     "Cabeceo: avanza 10 m hacia donde apunta la nariz.",
-     "Cabeceo: retrocede 10 m sin girar la nariz."
-    ],
-    "altura": [
-     "Sube 10 m y detente.",
-     "Baja 5 m y detente, sin desplazarte.",
-     "Sube 5 m mientras giras la nariz 90°."
-    ],
-    "regreso": [
-     "Vuelve sobre el dronpuerto con la nariz al frente.",
-     "Vuelve sobre el dronpuerto con la nariz hacia ti."
-    ]
-   },
-   "criterios": [
-    "Arrancó hacia el lado correcto",
-    "Movimiento suave, sin oscilar",
-    "Terminó donde se le pidió"
-   ],
    "minimo": 18,
    "miradas": 2
   },

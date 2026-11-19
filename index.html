@@ -47,7 +47,7 @@ textarea{width:100%;resize:vertical}
 .lista .ev{display:flex;gap:10px;align-items:center;border:1px solid var(--linea);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;width:100%;text-align:left}
 .ev .n{flex:1} .ev .n b{display:block} .ev .n span{font-size:13px;color:var(--gris)}
 .tag{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:bold;white-space:nowrap}
-.tag.ok{background:var(--verde-s);color:var(--verde)} .tag.mal{background:var(--rojo-s);color:var(--rojo)} .tag.bor{background:var(--ambar-s);color:var(--ambar)} .tag.crit{background:var(--rojo-s);color:var(--rojo);font-size:11px;padding:1px 8px}
+.tag.ok{background:var(--verde-s);color:var(--verde)} .tag.mal{background:var(--rojo-s);color:var(--rojo)} .tag.bor{background:var(--ambar-s);color:var(--ambar)} .tag.crit{background:var(--rojo-s);color:var(--rojo);font-size:11px;padding:1px 8px} .tag.pen{background:#e9eef0;color:#45545b}
 .pils{display:flex;flex-wrap:wrap;gap:6px}
 .pil{border:1.5px solid var(--linea);background:#fff;border-radius:20px;padding:8px 14px;font-weight:bold}
 .pil.on{background:var(--verde);border-color:var(--verde);color:#fff}
@@ -160,6 +160,10 @@ textarea{width:100%;resize:vertical}
 .pts2{font-size:12px;line-height:1.25;text-align:right;white-space:nowrap}
 .tabs button{padding:8px 4px;font-size:14px}
 .tabs button small{font-size:11px}
+.fila-ev{margin-bottom:8px}
+.fila-ev .ev{margin-bottom:0}
+.borrar-fila{text-align:right;padding:2px 4px 0}
+.btn-borrar{border:0;background:none;color:var(--rojo);font-size:13px;text-decoration:underline;padding:6px 8px;min-height:32px}
 .nota-sec{font-size:13px;color:var(--gris);padding:10px 14px 0}
 </style>
 </head>
@@ -170,13 +174,13 @@ textarea{width:100%;resize:vertical}
 <div id="modal"><div class="caja" id="modal-c"></div></div>
 <div id="visor"><img alt="Foto" id="visor-img"></div>
 <div id="mostrar"></div>
-<script src="plantilla.js?v=12"></script>
-<script src="datos.js?v=12"></script>
+<script src="plantilla.js?v=14"></script>
+<script src="datos.js?v=14"></script>
 <script>
 'use strict';
-var VERSION = 'EVAL-OP 12';
+var VERSION = 'EVAL-OP 14';
 /* defensa contra caché mezclado: si llegó una plantilla de otra versión, se avisa en vez de fallar en silencio */
-var PLANTILLA_ESPERADA = 'OP-12';
+var PLANTILLA_ESPERADA = 'OP-13';
 if (!window.PLANTILLA || window.PLANTILLA.version !== PLANTILLA_ESPERADA || !window.PLANTILLA.tarjetas_op8 || !window.PILOTOS) {
   document.getElementById('app').innerHTML = '<div class="msg err" style="font-size:22px;font-weight:bold;line-height:1.35;padding:22px;border:3px solid var(--rojo)">Versión mezclada: cierra la app, abre con señal y recarga.' +
     '<div style="font-size:14px;font-weight:normal;margin-top:10px">La app es ' + VERSION + ' y la lista cargada es ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ' (se esperaba ' + PLANTILLA_ESPERADA + '). Tus datos guardados no se han tocado.</div></div>';
@@ -204,6 +208,9 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function nombre1(n) { var p = String(n || '').split(' ').filter(Boolean); return p.length >= 4 ? p[0] + ' ' + p[2] : p.length === 3 ? p[0] + ' ' + p[1] : p.join(' '); }
 function ajustes() { try { return JSON.parse(localStorage.getItem('evop:aj')) || {}; } catch (e) { return {}; } }
 function guardarAjustes(a) { localStorage.setItem('evop:aj', JSON.stringify(a)); }
+/* maniobras de destreza por piloto (Ajustes, 4–12, por defecto 8); cada prueba guarda la suya en S.maniobras */
+function maniobrasAj() { var a = ajustes(), M = (window.PLANTILLA.destreza || {}).maniobras || { defecto: 8, minimo: 4, maximo: 12 }, n = parseInt(a.maniobras, 10); return isNaN(n) ? M.defecto : Math.max(M.minimo, Math.min(M.maximo, n)); }
+function maniobrasDe(S) { return S && S.maniobras ? S.maniobras : 8; }
 function notaMin() { var a = ajustes(); return a.nota != null ? +a.nota : 90; }
 function hoy() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 $('#ver').textContent = VERSION + ' · ' + P.version;
@@ -227,7 +234,9 @@ function todas() { return tx('ses', 'readonly', function (s) { return s.getAll()
 function leerS(id) { return tx('ses', 'readonly', function (s) { return s.get(id); }); }
 function guardarS(S) { S.actualizado = Date.now(); return tx('ses', 'readwrite', function (s) { s.put(S); }); }
 function fotosDe(S) { var a = (S.fotosGen || []).slice(); ['A', 'B'].forEach(function (k) { var it = S.ev[k].items; Object.keys(it).forEach(function (i) { a = a.concat(it[i].fotos || []); }); }); return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
-function borrarS(S) { var ids = fotosDe(S); return tx('ses', 'readwrite', function (s) { s.delete(S.id); }).then(function () { return tx('fotos', 'readwrite', function (s) { ids.forEach(function (i) { s.delete(i); }); }); }); }
+/* OP-14: una foto puede quedar en dos registros (la sesión y el registro del piloto que se retiró): solo se borra si nadie más la usa */
+function fotosLibres(S, ids) { return todas().then(function (L) { var usa = []; L.forEach(function (x) { if (x.id !== S.id) usa = usa.concat(fotosDe(x)); }); return ids.filter(function (i) { return usa.indexOf(i) < 0; }); }); }
+function borrarS(S) { return fotosLibres(S, fotosDe(S)).then(function (ids) { return tx('ses', 'readwrite', function (s) { s.delete(S.id); }).then(function () { return tx('fotos', 'readwrite', function (s) { ids.forEach(function (i) { s.delete(i); }); }); }); }); }
 function leerFoto(id) { return tx('fotos', 'readonly', function (s) { return s.get(id); }); }
 function guardarFoto(id, b) { return tx('fotos', 'readwrite', function (s) { s.put(b, id); }); }
 function borrarFoto(id) { return tx('fotos', 'readwrite', function (s) { s.delete(id); }); }
@@ -280,7 +289,11 @@ function otro(k) { return k === 'A' ? 'B' : 'A'; }
 /* modo individual: el piloto sin pareja (S.A) se evalúa en los dos roles; S.B es un acompañante que no se evalúa */
 function individual(S) { return !!S && S.modo === 'individual'; }
 function evaluados(S) { return individual(S) ? ['A'] : ['A', 'B']; }
-function nombreComp(S, k) { return individual(S) && otro(k) === 'B' ? S.B + ' (acompañante, no evaluado)' : S[otro(k)]; }
+function nombreComp(S, k) { return individual(S) && otro(k) === 'B' ? (S.B ? S.B + ' (acompañante, no evaluado)' : 'Sin acompañante') : S[otro(k)]; }
+/* OP-14: en modo individual el acompañante puede no existir («Sin reemplazo»): S.B queda vacío */
+function nomB(S) { return S.B || 'sin acompañante'; }
+function parejaTxt(S) { return individual(S) ? S.A + (S.B ? ' (acompañante: ' + S.B + ')' : ' (sin acompañante)') : S.A + ' y ' + S.B; }
+function retirado(S) { return !!S && S.estado === 'retirado'; }
 /* ---------- Prueba de destreza: vuelo sin pantalla, órdenes con puntos cardinales absolutos (alfabeto fonético) ---------- */
 var D = P.destreza, CARD = ['N', 'S', 'E', 'W'], VEC = { N: [0, 1], S: [0, -1], E: [1, 0], W: [-1, 0] };
 function azar(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -288,23 +301,25 @@ function desViejo(d) { return !!(d && d.c); }
 /* 6 combinaciones nariz + desplazamiento (horizontal 10–15 m o vertical), la mayoría con la nariz desalineada; sin alejarse más de
    D.maximo_m del dronpuerto en cada eje; «Baja» solo después de «Sube»; nunca la misma secuencia que el compañero */
 function sortearOrdenes(S, k) {
-  var otra = ((S.ev[otro(k)].des || {}).ord || []).join('|'), ord, n = 0;
+  /* N maniobras, todas combinaciones sorteadas (nariz con punto cardinal + desplazamiento horizontal de 10–15 m o vertical);
+     sin regreso ni aterrizaje; verticales alternando «Sube» y «Baja» (nunca baja antes de subir); máximo D.maximo_m por eje;
+     casi todas con la nariz hacia otro lado del desplazamiento; nunca la misma secuencia que el compañero */
+  var N = maniobrasDe(S), otra = ((S.ev[otro(k)].des || {}).ord || []).join('|'), ord, n = 0, maxAl = Math.max(1, Math.floor(N / 6));
   do {
-    var x = 0, y = 0, z = 0, alineadas = 0, ok = true, prev = '', L = [], nv = Math.random() < 0.5 ? 1 : 2;
-    var vert = []; for (var i = 0; i < nv; i++) vert.push(i === 0 ? 0 : 1);
-    var pos = []; while (pos.length < nv) { var p = 1 + Math.floor(Math.random() * (D.combinaciones - 1)); if (pos.indexOf(p) < 0) pos.push(p); } pos.sort();
-    for (i = 0; i < D.combinaciones && ok; i++) {
+    var x = 0, y = 0, z = 0, alineadas = 0, ok = true, prev = '', L = [], nv = 1 + Math.floor(Math.random() * Math.max(1, Math.floor(N / 4)));
+    var pos = []; while (pos.length < nv) { var p = 1 + Math.floor(Math.random() * (N - 1)); if (pos.indexOf(p) < 0) pos.push(p); } pos.sort(function (a, b) { return a - b; });
+    for (var i = 0; i < N && ok; i++) {
       var nariz = azar(CARD), j = pos.indexOf(i);
-      if (j >= 0) { var v = D.vertical[vert[j]]; z += j === 0 ? 1 : -1; if (z < 0) ok = false; L.push('Nariz al ' + D.puntos[nariz] + '. ' + v); continue; }
+      if (j >= 0) { var sube = j % 2 === 0; z += sube ? 1 : -1; if (z < 0) ok = false; L.push('Nariz al ' + D.puntos[nariz] + '. ' + D.vertical[sube ? 0 : 1]); continue; }
       var dir = azar(CARD.filter(function (c) { return c !== prev; })), m = azar(D.horizontal);
       if (dir === nariz) alineadas++;
       x += VEC[dir][0] * m; y += VEC[dir][1] * m; prev = dir;
       if (Math.abs(x) > D.maximo_m || Math.abs(y) > D.maximo_m) ok = false;
       L.push('Nariz al ' + D.puntos[nariz] + '. Desplázate ' + m + ' m al ' + D.puntos[dir] + '.');
     }
-    if (alineadas > 1) ok = false;
-    ord = L.concat([D.regreso.replace('{p}', D.puntos[azar(CARD)]), D.final.replace('{p}', D.puntos[azar(CARD)])]);
-  } while ((!ok || ord.join('|') === otra) && ++n < 500);
+    if (alineadas > maxAl) ok = false;
+    ord = L;
+  } while ((!ok || ord.join('|') === otra) && ++n < 3000);
   S.ev[k].des = { ord: ord, v: ord.map(function () { return null; }), mir: 0, inter: false };
 }
 function destreza(S, k) {
@@ -326,7 +341,7 @@ function destreza(S, k) {
   var puntos = Math.max(0, r1(D.valor * pts / max - Math.max(0, d.mir - D.miradas_libres)));
   return { pts: pts, max: max, completa: comp, ok: comp, mir: d.mir, inter: false, puntos: puntos };
 }
-/* la pregunta de destreza queda respondida cuando se califican las 8 órdenes; aporta su valor proporcional */
+/* la pregunta de destreza queda respondida cuando se califican todas las maniobras; aporta su valor proporcional */
 function aplicarDestreza(S, k) {
   var it = itemsDe(S).filter(function (x) { return x.destreza; })[0], r = S.ev[k].items[it.id] || (S.ev[k].items[it.id] = {}), d = destreza(S, k);
   r.e = d.completa ? 'c' : ''; r.obt = d.completa ? d.puntos : null; r.t = Date.now();
@@ -356,7 +371,9 @@ function iso(t) {
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + (o < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
 }
 function fichaT(t) { return t ? { id: t.id, t: t.t, para: t.para, reporte_esperado: t.reporte_esperado || 'VOR' } : null; }
+function cambiosJSON(S) { return (S.cambios || []).map(function (c) { return { hora: iso(c.hora), sale: c.sale, rol_sale: c.rol, entra: c.entra || null, entra_como: c.como, modo_antes: c.antes, modo_despues: c.despues, registro_retirado: c.registro || null, respuestas_del_que_sale: c.n || 0 }; }); }
 function resumen(S) {
+  if (retirado(S)) return [];
   return evaluados(S).map(function (k) {
     var r = calcular(S, k), e = S.ev[k], d = destreza(S, k), esp = repEsperado(S, k) || null, f = new Date(S.inicio), act = !vieja(S);
     var o = { nombre: S[k], rol: k === 'A' ? 'primero' : 'segundo', companero: S[otro(k)], modo: individual(S) ? 'individual' : 'pareja', companero_evaluado: !individual(S), fecha: f.getFullYear() + '-' + pad(f.getMonth() + 1) + '-' + pad(f.getDate()),
@@ -369,6 +386,8 @@ function resumen(S) {
       reporte: { esperado: esp },
       preguntas: r.preguntas, perdidos: r.perdidos, observaciones: e.obs || '' };
     if (!act) { o.obst = S.obst === '' || S.obst == null ? null : +S.obst; o.rth = e.rth === '' || e.rth == null ? null : +e.rth; }
+    /* OP-14 (opcional): historial de cambios de integrante de la sesión */
+    if ((S.cambios || []).length) o.cambios_integrantes = cambiosJSON(S);
     return o;
   });
 }
@@ -384,40 +403,68 @@ function inicio() {
       '<div class="acciones"><button class="btn pri" id="b-nueva">Nueva prueba (pareja)</button><button class="btn" id="b-exp">Exportar respaldo</button><button class="btn" id="b-csv">Resumen (CSV)</button>' +
       '<label class="btn" style="display:inline-flex;align-items:center">Importar<input type="file" id="b-imp" accept=".json,application/json" hidden></label><button class="btn" id="b-guia">Guía de la prueba</button><button class="btn" id="b-aj">Ajustes</button></div></div>' +
       '<div class="lista">' + (L.length ? L.map(function (S) {
+        if (retirado(S)) { var R = S.retirado || {}; return '<div class="fila-ev"><button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(R.nombre) + ' (se retiró' + (R.companero ? '; estaba con ' + esc(R.companero) : '') + ')</b><span>' + fmt(S.inicio) + ' · salió ' + fmt(R.hora).slice(11) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span><span class="tag pen">Incompleta · retirado</span></button>' +
+          '<div class="borrar-fila"><button class="btn-borrar" data-borrar="' + S.id + '">Borrar</button></div></div>'; }
         var tag = function (k) { var r = calcular(S, k); return S.estado === 'final' ? '<span class="tag ' + (r.aprobado ? 'ok">' : 'mal">') + esc(nombre1(S[k])) + ' ' + r.pts + '</span>' : ''; };
         var av = S.estado === 'final' ? evaluados(S).map(tag).join(' ') : '<span class="tag bor">En curso</span>';
-        return '<button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(S.A) + (individual(S) ? ' (acompañante: ' + esc(S.B) + ')' : ' y ' + esc(S.B)) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>';
+        return '<div class="fila-ev"><button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(parejaTxt(S)) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>' +
+          (S.estado === 'final' ? '<div class="borrar-fila"><button class="btn-borrar" data-borrar="' + S.id + '">Borrar</button></div>' : '') + '</div>';
       }).join('') : '<div class="hoja sub">Todavía no hay pruebas en este celular.</div>') + '</div>';
     $('#b-nueva').onclick = nueva; $('#b-aj').onclick = pantallaAjustes; $('#b-guia').onclick = guia;
+    Array.prototype.forEach.call(app.querySelectorAll('[data-borrar]'), function (b) { b.onclick = function () { var S = L.filter(function (x) { return x.id === b.getAttribute('data-borrar'); })[0]; if (S) dialogoBorrar([S], false); }; });
     $('#b-exp').onclick = function () { exportar(L); }; $('#b-csv').onclick = function () { exportarCSV(L); };
     $('#b-imp').onchange = function () { importar(this.files[0]); };
-    Array.prototype.forEach.call(app.querySelectorAll('.ev'), function (b) { b.onclick = function () { leerS(b.getAttribute('data-id')).then(function (S) { S.estado === 'final' ? informe(S) : evaluar(S, 'A'); }); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('.ev'), function (b) { b.onclick = function () { leerS(b.getAttribute('data-id')).then(function (S) { S.estado === 'final' ? informe(S) : retirado(S) ? verRetirado(S) : evaluar(S, 'A'); }); }; });
   });
 }
 function pantallaAjustes() {
   var a = ajustes();
   app.innerHTML = '<div class="hoja"><h1>Ajustes</h1><label class="campo">Nombre del evaluador<input id="a-ev" value="' + esc(a.evaluador || '') + '" placeholder="Ej.: Juan Pablo Castañeda – Jefe de Pilotos"></label>' +
     '<label class="campo">Nota mínima para aprobar (0 a 100)<input id="a-nota" type="number" min="0" max="100" value="' + notaMin() + '"></label>' +
-    '<p class="sub">El puntaje de cada piloto es el porcentaje de ítems que cumple entre los que aplican. Si incumple un ítem crítico, no aprueba aunque el puntaje sea alto.</p>' +
-    '<div class="acciones"><button class="btn pri" id="a-ok">Guardar</button><button class="btn" id="a-no">Volver</button></div></div>';
-  $('#a-ok').onclick = function () { guardarAjustes({ evaluador: $('#a-ev').value.trim(), nota: Math.max(0, Math.min(100, +$('#a-nota').value || 0)) }); inicio(); };
+    '<label class="campo">Maniobras de destreza por piloto (' + D.maniobras.minimo + ' a ' + D.maniobras.maximo + ')<input id="a-man" type="number" min="' + D.maniobras.minimo + '" max="' + D.maniobras.maximo + '" value="' + maniobrasAj() + '"></label>' +
+    '<p class="sub">Aplica a las pruebas nuevas; una prueba ya iniciada conserva su número de maniobras.</p>' +
+    '<p class="sub">El puntaje de cada piloto es los puntos obtenidos entre los puntos posibles de las preguntas que aplican, por 100. Aprueba con la nota mínima o más.</p>' +
+    '<div class="acciones"><button class="btn pri" id="a-ok">Guardar</button><button class="btn" id="a-no">Volver</button></div></div>' +
+    '<div class="hoja"><h2>Borrar evaluaciones cerradas</h2><p class="sub">Para limpiar el celular después de las pruebas de ensayo. Incluye los registros incompletos de pilotos que se retiraron. Las evaluaciones en curso no se tocan. Exporta el respaldo antes si quieres conservarlas.</p>' +
+    '<div class="acciones"><button class="btn peligro" id="a-borrar">Borrar todas las evaluaciones cerradas</button></div></div>';
+  $('#a-borrar').onclick = function () { todas().then(function (L) { var F = L.filter(function (S) { return S.estado === 'final' || retirado(S); }); if (!F.length) { modal('<h2>No hay evaluaciones cerradas</h2><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; } dialogoBorrar(F, true); }); };
+  $('#a-ok').onclick = function () { var mn = parseInt($('#a-man').value, 10); guardarAjustes({ evaluador: $('#a-ev').value.trim(), nota: Math.max(0, Math.min(100, +$('#a-nota').value || 0)), maniobras: isNaN(mn) ? D.maniobras.defecto : Math.max(D.maniobras.minimo, Math.min(D.maniobras.maximo, mn)) }); inicio(); };
   $('#a-no').onclick = inicio;
 }
+/* Borrar evaluaciones cerradas: siempre con este diálogo (nunca confirm()); borra también sus fotos */
+function dialogoBorrar(F, todasF) {
+  var lin = function (S) { if (retirado(S)) return '<li><b>' + esc((S.retirado || {}).nombre) + '</b> · ' + fmt(S.inicio) + ' · incompleta (se retiró)</li>'; return '<li><b>' + esc(S.A) + (individual(S) ? '' : ' y ' + esc(S.B)) + '</b> · ' + fmt(S.inicio) + ' · ' + evaluados(S).map(function (k) { return esc(nombre1(S[k])) + ' ' + num(calcular(S, k).pts); }).join(' · ') + '</li>'; };
+  modal('<h2>' + (todasF ? '¿Borrar las ' + F.length + ' evaluaciones cerradas?' : '¿Borrar esta evaluación?') + '</h2>' +
+    '<ul class="sub" style="max-height:40vh;overflow:auto;padding-left:18px">' + F.map(lin).join('') + '</ul>' +
+    '<p>' + (todasF ? 'Estas evaluaciones se borran' : 'Esta evaluación se borra') + ' del celular y no se puede recuperar. Si ya exportaste el respaldo, sigue en ese archivo.</p>' +
+    (todasF ? '<label class="campo">Para confirmar, escribe BORRAR<input id="m-conf" autocomplete="off" autocapitalize="characters"></label>' : '') +
+    '<div class="acciones"><button class="btn pri" id="m-no">Cancelar</button><button class="btn peligro" id="m-si"' + (todasF ? ' disabled' : '') + '>Borrar definitivamente</button></div>');
+  $('#m-no').focus();
+  $('#m-no').onclick = cerrar;
+  if (todasF) $('#m-conf').oninput = function () { $('#m-si').disabled = this.value.trim() !== 'BORRAR'; };
+  $('#m-si').onclick = function () {
+    if (todasF && $('#m-conf').value.trim() !== 'BORRAR') return;
+    cerrar();
+    F.reduce(function (pr, S) { return pr.then(function () { return borrarS(S); }); }, Promise.resolve()).then(inicio);
+  };
+}
+var AVISO_EMPEZAR = 'Explica la prueba y resuelve dudas ANTES de tocar Empezar; el reloj de ' + P.minutos + ' minutos arranca al tocarlo.';
 function minVuelo() { var f = P.cronograma.filter(function (x) { return /^Vuelo 1/.test(x.t); })[0]; return f ? f.a - f.de : ''; }
 function guia() {
   app.innerHTML = '<div class="hoja"><h1>Guía de la prueba operacional</h1>' +
-    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que empieza la prueba: tú explicas, ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las órdenes de destreza y das las contingencias.</p>' +
+    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que tocas «Empezar»: ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las maniobras de destreza y das las contingencias.</p>' +
+    '<div class="msg info"><b>' + esc(AVISO_EMPEZAR) + '</b></div>' +
     '<h2>Cronograma sugerido</h2><ul>' + P.cronograma.map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join('') + '</ul>' +
     '<h2>Qué decirles al empezar</h2><ul><li>Tienen ' + P.minutos + ' minutos para preparar, volar los dos y cerrar; cada vuelo tiene ' + minVuelo() + ' minutos, de la lista de chequeo pre-vuelo al apagado.</li><li>Cada uno vuela una vez y es observador del otro.</li>' +
-    '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las órdenes que le dictes con los puntos cardinales (November = norte, Sierra = sur, Echo = este, Whiskey = oeste). Antes, muéstrales dónde queda el November desde el dronpuerto.</li>' +
+    '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las maniobras que le dictes con los puntos cardinales (November = norte, Sierra = sur, Echo = este, Whiskey = oeste). Antes, muéstrales dónde queda el November desde el dronpuerto.</li>' +
     '<li>En cada vuelo hay situaciones que deben atender como si fueran reales: una se la muestras al piloto y otra al observador.</li><li>Cada piloto registra su vuelo en la bitácora, como en una operación normal.</li></ul>' +
-    '<h2>Orden de cada vuelo</h2><ol>' + P.pasos.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol><p class="sub">La pantalla de evaluación está organizada por vuelo: Preparación, Vuelo 1 (pilota el primero, observa el segundo), Vuelo 2 (al revés) y Cierre. Dentro de cada vuelo las preguntas siguen estos pasos; las del observador le suman a quien observa. La app marca el paso que sigue arriba del vuelo y en la barra. Si un piloto tiene la pareja por definir, al crear la prueba eliges un acompañante (de la lista o escribiendo el nombre) que no se evalúa: el piloto vuela en el vuelo 1, observa en el vuelo 2 y solo él recibe tarjetas, puntos e informe (sobre los mismos 100 puntos).</p>' +
+    '<h2>Orden de cada vuelo</h2><ol>' + P.pasos.map(function (p) { return '<li>' + esc(p.replace('{N}', maniobrasAj())) + '</li>'; }).join('') + '</ol><p class="sub">La pantalla de evaluación está organizada por vuelo: Preparación, Vuelo 1 (pilota el primero, observa el segundo), Vuelo 2 (al revés) y Cierre. Dentro de cada vuelo las preguntas siguen estos pasos; las del observador le suman a quien observa. La app marca el paso que sigue arriba del vuelo y en la barra. Si un piloto tiene la pareja por definir, al crear la prueba eliges un acompañante (de la lista o escribiendo el nombre) que no se evalúa: el piloto vuela en el vuelo 1, observa en el vuelo 2 y solo él recibe tarjetas, puntos e informe (sobre los mismos 100 puntos). Si alguien no llega, se va o decides reasignar, usa «Cambiar integrante» arriba de la evaluación: el que sale queda como registro incompleto (sin nota, sigue pendiente), el que entra empieza desde cero y el que se queda conserva lo suyo; con acompañante o sin reemplazo la prueba pasa a individual.</p>' +
     '<h2>Calificación</h2><p class="sub">' + LISTA.items.length + ' preguntas; cada una vale lo que dice entre paréntesis y en total suman ' + puntosLista(LISTA) + ' puntos. El puntaje es los puntos obtenidos entre los puntos de las preguntas que aplican, por 100, con un decimal (una «no aplica» no cuenta). Ninguna pregunta es crítica: aprueba con ' + notaMin() + ' o más. Al cerrar, la app dice dónde perdió puntos cada piloto, de mayor a menor.</p>' +
     LISTA.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + (s.nota_evaluador ? '<p class="sub"><b>Solo para ti:</b> ' + esc(s.nota_evaluador) + '</p>' : '') + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.trampa ? ' · vuelo ' + i.trampa : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
     '<h2>Trampas (solo para ti)</h2><p class="sub">Una en cada vuelo, después de la tarjeta del observador y antes de la del piloto. Nunca se muestran en pantalla: las das de palabra.</p><ul>' + Object.keys(P.trampas).map(function (n) { return '<li><b>Vuelo ' + n + ':</b> ' + esc(P.trampas[n]) + '</li>'; }).join('') + '</ul>' +
-    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. Las direcciones son absolutas (no dependen de hacia dónde apunte el dron): November = norte, Sierra = sur, Echo = este, Whiskey = oeste. La app sortea ' + D.combinaciones + ' órdenes de nariz + desplazamiento (horizontal de ' + D.horizontal.join(' o ') + ' m, o vertical: ' + D.vertical.join(' / ').toLowerCase() + '), casi todas con la nariz hacia otro lado del desplazamiento, más «' + esc(D.regreso.replace('{p}', '…')) + '» y «' + esc(D.final.replace('{p}', '…')) + '»: ' + (D.combinaciones + 2) + ' órdenes, distintas a las del compañero. Ejemplo: «Nariz al November. Desplázate 15 m al Whiskey.»</p>' +
-    '<p class="sub">Toca la orden al dictarla: arranca un contador de ' + D.segundos + ' s (solo es una guía; no califica solo). Califica cada orden:</p><ul>' + D.notas.map(function (x) { return '<li><b>' + x[2] + ' (' + x[1] + '):</b> ' + esc(x[3]) + '.</li>'; }).join('') + '</ul>' +
-    '<p class="sub">Si tienes que intervenir en una orden, márcala «No la hizo». Puntos de la destreza = ' + D.valor + ' × (puntos de las órdenes / ' + ((D.combinaciones + 2) * 2) + ') − 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª (mínimo 0), con un decimal; se calcula solo al calificar las ' + (D.combinaciones + 2) + ' órdenes.</p>' +
+    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. Las direcciones son absolutas (no dependen de hacia dónde apunte el dron): November = norte, Sierra = sur, Echo = este, Whiskey = oeste. La app sortea ' + maniobrasAj() + ' maniobras por piloto (se cambia en Ajustes, de ' + D.maniobras.minimo + ' a ' + D.maniobras.maximo + '): cada una es orientación de la nariz hacia un punto cardinal + desplazamiento horizontal de ' + D.horizontal.join(' o ') + ' m o vertical (' + D.vertical.join(' / ').toLowerCase() + '), casi todas con la nariz hacia otro lado del desplazamiento y distintas a las del compañero. No hay maniobras de despegue, regreso ni aterrizaje. Ejemplo: «Nariz al November. Desplázate 15 m al Whiskey.»</p>' +
+    '<p class="sub">Toca la maniobra al dictarla: arranca un contador de ' + D.segundos + ' s (solo es una guía; no califica solo). Califica cada maniobra:</p><ul>' + D.notas.map(function (x) { return '<li><b>' + x[2] + ' (' + x[1] + '):</b> ' + esc(x[3]) + '.</li>'; }).join('') + '</ul>' +
+    '<p class="sub">Si tienes que intervenir en una maniobra, márcala «No la hizo». Con ' + maniobrasAj() + ' maniobras el máximo es ' + (2 * maniobrasAj()) + '. Puntos de la destreza = ' + D.valor + ' × (puntos de las maniobras / ' + (2 * maniobrasAj()) + ') − 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª (mínimo 0), con un decimal; se calcula solo al calificar todas las maniobras.</p>' +
     '<h2>Tarjetas de contingencia (' + P.tarjetas.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Dos por vuelo, a pantalla completa solo a su destinatario: una para el piloto (cualquier ejecutable en vuelo, incluso de tiempo alto, porque va de última; en esas le preguntas al final «' + PREGUNTA_ALTO + '»; la evalúas en «¿Atendió la contingencia…?» del que vuela) y otra para el observador (ejecutable en vuelo y que se resuelve en el aire; la evalúas en «¿Avisó a tiempo las amenazas…?» del que observa). Así cada piloto recibe una como piloto y otra como observador. El sorteo no repite tarjeta ni familia en la pareja; las demás se eligen a mano con «o elegir…».</p>' +
     '<h2>Reporte</h2><p class="sub">A cada piloto le corresponde el reporte de la tarjeta de piloto de su vuelo (MOR, VOR o los dos; si el escenario dice «No requiere», igual es VOR). Lo hace por fuera de la app; si lo hizo se verifica en el informe del PC.</p>' +
     GRUPOS.map(function (g) { var L = P.tarjetas.filter(function (t) { return grupoT(t) === g[0]; }); return L.length ? '<h2 style="font-size:15px">' + g[1] + ' (' + L.length + ')</h2>' + L.map(function (t) { return '<div class="tarj"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · se le muestra al <b>' + t.para + '</b> · reporte: <b>' + repTxt(t.reporte_esperado) + '</b><br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Tiempo:</span> ' + esc(t.tiempo) + '</div>'; }).join('') : ''; }).join('') +
@@ -426,47 +473,64 @@ function guia() {
 }
 
 /* ---------- Nueva prueba ---------- */
+/* estado de cada piloto según las sesiones del celular: Evaluado > En curso > Retirado (incompleta: sigue pendiente) */
+function estadoPilotos(L) {
+  var h = {}, rango = { 'Evaluado': 3, 'En curso': 2, 'Retirado': 1 }, pon = function (n, v) { if (n && (rango[v] || 0) > (rango[h[n]] || 0)) h[n] = v; };
+  L.forEach(function (S) { if (retirado(S)) { pon((S.retirado || {}).nombre, 'Retirado'); return; } var v = S.estado === 'final' ? 'Evaluado' : 'En curso'; pon(S.A, v); if (!individual(S)) pon(S.B, v); });
+  return h;
+}
+function marcaPiloto(h, n) { var v = h[n]; return !v ? '' : v === 'Retirado' ? ' <span class="tag pen">Pendiente · se retiró de una prueba</span>' : ' <span class="tag ' + (v === 'Evaluado' ? 'ok' : 'bor') + '">' + v + '</span>'; }
 function nueva() {
-  var sel = { A: '', B: '', tipo: 'VLOS', modo: '' }, hechos = {}, acomp = false;
+  /* OP-14: sel.edit = puesto que se está cambiando ('A' o 'B') con su botón «Cambiar»; sel.prev guarda lo que había para «Cancelar cambio» */
+  var sel = { A: '', B: '', tipo: 'VLOS', modo: '', edit: '', prev: null }, hechos = {}, acomp = false;
   var deHoy = PILOTOS.filter(function (p) { return (p.turnos || []).some(function (t) { return t.ini.slice(0, 10) === hoy(); }); })
     .sort(function (a, b) { return a.turnos[0].ini.localeCompare(b.turnos[0].ini) || a.nombre.localeCompare(b.nombre); });
-  todas().then(function (L) { L.forEach(function (S) { hechos[S.A] = S.estado === 'final' ? 'Evaluado' : 'En curso'; if (!individual(S)) hechos[S.B] = hechos[S.A]; }); dibujar(null); });
-  function marca(n) { return hechos[n] ? ' <span class="tag ' + (hechos[n] === 'Evaluado' ? 'ok' : 'bor') + '">' + hechos[n] + '</span>' : ''; }
+  todas().then(function (L) { hechos = estadoPilotos(L); dibujar(null); });
+  function marca(n) { return marcaPiloto(hechos, n); }
   function boton(p, extra) { return '<button class="sugerido" data-p="' + esc(p.nombre) + '"><b>' + esc(p.nombre) + marca(p.nombre) + '</b>' + (extra ? '<span>' + extra + '</span>' : '') + '</button>'; }
   function dibujar(filtro) {
-    var f = norm(filtro || ''), cual = !sel.A ? 'A' : !sel.B ? 'B' : '';
+    var f = norm(filtro || ''), cual = sel.edit || (!sel.A ? 'A' : !sel.B ? 'B' : ''), ed = !!sel.edit, otroP = cual === 'A' ? sel.B : sel.A;
     var pA = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0], sinPareja = cual === 'B' && !(pA && pA.pareja);
-    var lista = f ? PILOTOS.filter(function (p) { return norm(p.nombre).indexOf(f) >= 0 && p.nombre !== sel.A; }).slice(0, 12) : [];
+    /* al cambiar un puesto: lista completa (con búsqueda) sin el que está en el otro puesto */
+    var lista = f ? PILOTOS.filter(function (p) { return norm(p.nombre).indexOf(f) >= 0 && p.nombre !== otroP && p.nombre !== sel.A; }).slice(0, ed ? 999 : 12) : ed && !acomp ? PILOTOS.filter(function (p) { return p.nombre !== otroP; }) : [];
     var pares = [];
     if (!sel.A) deHoy.forEach(function (p) { if (p.pareja && pares.some(function (x) { return x[1] === p.nombre; })) return; pares.push([p.nombre, p.pareja || '', p.turnos.filter(function (t) { return t.ini.slice(0, 10) === hoy(); })[0]]); });
     app.innerHTML = '<div class="hoja"><h1>Nueva prueba</h1>' +
-      (sel.A ? '<div class="msg ok">Vuela primero: <b>' + esc(sel.A) + '</b></div>' : '') + (sel.B ? '<div class="msg ok">' + (sel.modo === 'individual' ? 'Acompañante (no se evalúa; pilota el vuelo 2): ' : 'Vuela segundo: ') + '<b>' + esc(sel.B) + '</b></div>' : '') +
+      (sel.A ? '<div class="msg ok" style="display:flex;align-items:center;gap:8px"><span style="flex:1">Vuela primero: <b>' + esc(sel.A) + '</b></span><button class="btn chico" data-slot="A">Cambiar</button></div>' : '') +
+      (sel.B ? '<div class="msg ok" style="display:flex;align-items:center;gap:8px"><span style="flex:1">' + (sel.modo === 'individual' ? 'Acompañante (no se evalúa; pilota el vuelo 2): ' : 'Vuela segundo: ') + '<b>' + esc(sel.B) + '</b></span><button class="btn chico" data-slot="B">Cambiar</button></div>' : '') +
+      (ed ? '<div class="msg info" style="display:flex;align-items:center;gap:8px"><span style="flex:1">Cambiando a quien ' + (cual === 'A' ? 'vuela primero' : 'vuela segundo') + (sel.prev && sel.prev[cual] ? ' (estaba ' + esc(sel.prev[cual]) + ')' : '') + '. ' + (otroP ? esc(otroP) + ' se queda en su puesto.' : '') + '</span>' + (sel.prev && sel.prev[cual] ? '<button class="btn chico" id="n-volver">Cancelar cambio</button>' : '') + '</div>' : '') +
       (sel.modo === 'individual' ? '<div class="msg info">Solo se evalúa a <b>' + esc(sel.A) + '</b>: como piloto en el vuelo 1 y como observador en el vuelo 2.</div>' : '') +
-      (sinPareja && !acomp ? '<div class="msg info">' + esc(sel.A) + ' tiene la pareja por definir.</div><div class="acciones" style="margin-top:0"><button class="btn pri" id="n-acomp">Elegir acompañante (no se evalúa)</button></div><p class="sub" style="margin:8px 0 4px">o busca a un compañero que también se evalúa:</p>' : '') +
-      (sel.A && sel.B ? '<div class="acciones" style="margin-top:0">' + (sel.modo === 'individual' ? '' : '<button class="btn chico" id="n-inv">Invertir orden</button>') + '<button class="btn chico" id="n-camb">Cambiar pilotos</button></div>' : '') +
-      (cual ? '<label class="campo">' + (cual === 'A' ? 'Buscar al piloto que vuela primero' : acomp ? 'Acompañante (no se evalúa): busca en la lista o escribe el nombre' : 'Buscar a su compañero (vuela segundo)') + '<input id="n-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
+      (sinPareja && !acomp && !ed ? '<div class="msg info">' + esc(sel.A) + ' tiene la pareja por definir.</div><div class="acciones" style="margin-top:0"><button class="btn pri" id="n-acomp">Elegir acompañante (no se evalúa)</button></div><p class="sub" style="margin:8px 0 4px">o busca a un compañero que también se evalúa:</p>' : '') +
+      (ed && cual === 'B' && !acomp ? '<p class="sub" style="margin:8px 0 4px">Elige al compañero que vuela segundo (se evalúan los dos) <button class="btn chico" id="n-acomp">o un acompañante que no se evalúa</button></p>' : '') +
+      (sel.A && sel.B ? '<div class="acciones" style="margin-top:0">' + (sel.modo === 'individual' ? '' : '<button class="btn chico" id="n-inv">Invertir orden</button>') + '<button class="btn chico" id="n-camb">Cambiar los dos</button></div>' : '') +
+      (cual ? '<label class="campo">' + (cual === 'A' ? (ed ? 'Buscar al piloto que vuela primero (lista completa)' : 'Buscar al piloto que vuela primero') : acomp ? 'Acompañante (no se evalúa): busca en la lista o escribe el nombre' : 'Buscar a su compañero (vuela segundo)') + '<input id="n-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
         (acomp && String(filtro || '').trim().length > 2 ? '<button class="sugerido" id="n-libre"><b>Usar «' + esc(String(filtro).trim()) + '» como acompañante</b><span>Nombre escrito a mano</span></button>' : '') +
         lista.map(function (p) { return boton(p, p.pareja ? 'pareja: ' + esc(p.pareja) : ''); }).join('') +
-        (cual === 'A' && !f && pares.length ? '<p class="sub" style="margin:6px 0">Parejas programadas hoy:</p>' + pares.map(function (x) {
+        (cual === 'A' && !ed && !f && pares.length ? '<p class="sub" style="margin:6px 0">Parejas programadas hoy:</p>' + pares.map(function (x) {
           return '<button class="sugerido" data-par="' + esc(x[0]) + '|' + esc(x[1]) + '"><b>' + esc(x[0]) + (x[1] ? ' y ' + esc(x[1]) : '') + marca(x[0]) + '</b><span>' + x[2].ini.slice(11) + ' a ' + x[2].fin.slice(11) + '</span></button>'; }).join('') : '') : '') +
       (!cual ? '<div class="campo">Tipo de operación<div class="pils">' + ['VLOS', 'EVLOS', 'BVLOS', 'Nocturno'].map(function (r) { return '<button class="pil' + (sel.tipo === r ? ' on' : '') + '" data-tipo="' + r + '">' + r + '</button>'; }).join('') + '</div></div>' +
         '<label class="campo">Dron<select id="n-dron"><option value="">Elige el dron…</option>' + DRONES.map(function (d) { var v = d.dr + ' · ' + d.modelo; return '<option' + (sel.dron === v ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
         '<p class="sub">Lugar: <b>' + esc(P.lugar) + '</b></p>' +
-        '<div class="msg info">Al tocar «Empezar», arranca el reloj de ' + P.minutos + ' minutos de la prueba.</div>' +
+        '<div class="msg info"><b>' + esc(AVISO_EMPEZAR) + '</b></div>' +
         '<div class="acciones"><button class="btn pri" id="n-ok">Empezar la prueba</button><button class="btn" id="n-no">Cancelar</button></div>' : '<div class="acciones"><button class="btn" id="n-no">Cancelar</button></div>') + '</div>';
     if ($('#n-acomp')) $('#n-acomp').onclick = function () { acomp = true; dibujar(''); };
-    if ($('#n-libre')) $('#n-libre').onclick = function () { sel.B = String(filtro).trim().replace(/\s+/g, ' '); sel.modo = 'individual'; dibujar(null); };
-    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { if (cual === 'B') sel.modo = acomp ? 'individual' : ''; sel[cual] = b.getAttribute('data-p'); if (cual === 'A') { var p = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0]; if (p && p.pareja) sel.B = p.pareja; } dibujar(null); }; });
+    if ($('#n-libre')) $('#n-libre').onclick = function () { sel.B = String(filtro).trim().replace(/\s+/g, ' '); sel.modo = 'individual'; sel.edit = ''; sel.prev = null; acomp = false; dibujar(null); };
+    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { if (cual === 'B') sel.modo = acomp ? 'individual' : ''; sel[cual] = b.getAttribute('data-p');
+      /* la pareja programada solo se autocompleta al elegir el primero desde cero, nunca al cambiar un puesto */
+      if (cual === 'A' && !ed && !sel.B) { var p = PILOTOS.filter(function (x) { return x.nombre === sel.A; })[0]; if (p && p.pareja) sel.B = p.pareja; }
+      sel.edit = ''; sel.prev = null; acomp = false; dibujar(null); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('[data-slot]'), function (b) { b.onclick = function () { var q = b.getAttribute('data-slot'); sel.prev = { A: sel.A, B: sel.B, modo: sel.modo }; sel[q] = ''; sel.edit = q; acomp = false; dibujar(''); }; });
+    if ($('#n-volver')) $('#n-volver').onclick = function () { sel.A = sel.prev.A; sel.B = sel.prev.B; sel.modo = sel.prev.modo; sel.edit = ''; sel.prev = null; acomp = false; dibujar(null); };
     Array.prototype.forEach.call(app.querySelectorAll('[data-par]'), function (b) { b.onclick = function () { var x = b.getAttribute('data-par').split('|'); sel.A = x[0]; sel.B = x[1]; dibujar(null); }; });
     if ($('#n-bus')) { var i = $('#n-bus'); i.oninput = function () { dibujar(i.value); var j = $('#n-bus'); j.focus(); j.setSelectionRange(j.value.length, j.value.length); }; if (filtro != null) i.focus(); }
     if ($('#n-inv')) $('#n-inv').onclick = function () { var t = sel.A; sel.A = sel.B; sel.B = t; dibujar(null); };
-    if ($('#n-camb')) $('#n-camb').onclick = function () { sel.A = sel.B = ''; sel.modo = ''; acomp = false; dibujar(null); };
+    if ($('#n-camb')) $('#n-camb').onclick = function () { sel.A = sel.B = ''; sel.modo = ''; sel.edit = ''; sel.prev = null; acomp = false; dibujar(null); };
     Array.prototype.forEach.call(app.querySelectorAll('[data-tipo]'), function (b) { b.onclick = function () { sel.dron = $('#n-dron').value; sel.tipo = b.getAttribute('data-tipo'); dibujar(null); }; });
     if ($('#n-dron')) $('#n-dron').onchange = function () { sel.dron = this.value; };
     $('#n-no').onclick = inicio;
     if ($('#n-ok')) $('#n-ok').onclick = function () {
       if (!$('#n-dron').value) { modal('<h2>Elige el dron</h2><p>Selecciona el dron con el que van a hacer la prueba.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
-      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value, modo: sel.modo === 'individual' ? 'individual' : 'pareja',
+      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value, modo: sel.modo === 'individual' ? 'individual' : 'pareja', minutos: P.minutos, maniobras: maniobrasAj(),
         evaluador: ajustes().evaluador || '', nota: notaMin(), inicio: Date.now(), ambos: sel.modo !== 'individual', obst: '', obs: '', fotosGen: [],
         ev: { A: { items: {}, rth: '', tp: '', to: '' }, B: { items: {}, rth: '', tp: '', to: '' } } };
       if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (g) { S.gps = [+g.coords.latitude.toFixed(6), +g.coords.longitude.toFixed(6)]; guardarS(S); }, function () {}, { timeout: 15000 });
@@ -479,7 +543,7 @@ function nueva() {
 var ABIERTA = {}, TICK;
 function fase(S) {
   var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0];
-  return f ? f.t.replace('{A}', nombre1(S.A)).replace('{B}', nombre1(S.B)) : 'Tiempo cumplido';
+  return f ? f.t.replace('{A}', nombre1(S.A)).replace('{B}', nombre1(S.B) || '(sin acompañante)') : 'Tiempo cumplido';
 }
 function faseVuelo(S) { var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0]; return f && f.vuelo ? f.vuelo : ''; }
 function primer(n) { return String(n || '').split(' ')[0]; }
@@ -490,7 +554,7 @@ function barra(S) {
   b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span id="pasos-barra" class="pasos-barra"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / N) + '%"></i></span></span>' +
     '<span class="pts2">' + esc(nombre1(S.A)) + ' <b>' + pt(ra) + '</b>' + (individual(S) ? '' : '<br>' + esc(nombre1(S.B)) + ' <b>' + pt(rb) + '</b>') + '</span>' + (ra.crit.length + (individual(S) ? 0 : rb.crit.length) ? '<span class="tag mal">' + (ra.crit.length + rb.crit.length) + 'C</span>' : '');
   var tick = function () {
-    var rest = S.inicio + P.minutos * 60000 - Date.now(), s = Math.round(Math.abs(rest) / 1000), el = $('#reloj');
+    var rest = S.inicio + (S.minutos || P.minutos) * 60000 - Date.now(), s = Math.round(Math.abs(rest) / 1000), el = $('#reloj');
     if (!el) return;
     el.textContent = (rest < 0 ? '+' : '') + Math.floor(s / 60) + ':' + pad(s % 60);
     el.className = 't' + (rest < 0 ? ' fin' : rest < 5 * 60000 ? ' aviso' : '');
@@ -573,13 +637,15 @@ function evaluar(S, tab) {
   TABACT = tab;
   var vuelo = tab === 'v1' || tab === 'v2', f = tab === 'v2' ? 'B' : 'A';
   var cab = vieja(S) ? '<b>' + esc(S[tab]) + '</b><span class="sub"> · ' + esc(S.tipo) + ' · lista ' + esc(S.plantilla) + '</span>'
-    : vuelo ? '<b>' + (tab === 'v1' ? 'Vuelo 1' : 'Vuelo 2') + ' · pilota ' + esc(nombre1(S[f])) + (individual(S) && f === 'B' ? ' (acompañante)' : '') + ' · observa ' + esc(nombre1(S[otro(f)])) + (individual(S) && f === 'A' ? ' (acompañante)' : '') + '</b>' +
-      (individual(S) ? '<div class="msg info" style="margin:8px 0 0">' + (f === 'B' ? 'En este vuelo solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b> como observador.' : 'Solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b>; ' + esc(nombre1(S.B)) + ' es acompañante y no se evalúa.') + '</div>' : '')
-    : '<b>' + (tab === 'prep' ? 'Preparación' : 'Cierre') + '</b><span class="sub"> · ' + esc(S.A) + ' y ' + esc(S.B) + ' · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>';
+    : vuelo ? '<b>' + (tab === 'v1' ? 'Vuelo 1' : 'Vuelo 2') + ' · pilota ' + esc(nombre1(f === 'B' ? nomB(S) : S[f])) + (individual(S) && f === 'B' && S.B ? ' (acompañante)' : '') + ' · observa ' + esc(nombre1(otro(f) === 'B' ? nomB(S) : S[otro(f)])) + (individual(S) && f === 'A' && S.B ? ' (acompañante)' : '') + '</b>' +
+      (individual(S) ? '<div class="msg info" style="margin:8px 0 0">' + (f === 'B' ? 'En este vuelo solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b> como observador.' : 'Solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b>' + (S.B ? '; ' + esc(nombre1(S.B)) + ' es acompañante y no se evalúa.' : ' (sin acompañante).')) + '</div>' : '')
+    : '<b>' + (tab === 'prep' ? 'Preparación' : 'Cierre') + '</b><span class="sub"> · ' + esc(parejaTxt(S)) + ' · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>';
   var bl = bloquesDe(S, tab);
   app.innerHTML = '<div class="tabs" style="grid-template-columns:repeat(' + T.length + ',1fr)">' + T.map(function (t) { return '<button data-tab="' + t.id + '" class="' + (t.id === tab ? 'on' : '') + '">' + esc(t.t) + '<small>' + esc(tabTxt(S, t)) + '</small></button>'; }).join('') + '</div>' +
     '<div class="hoja" style="padding:10px 14px">' + cab +
-    (vuelo || individual(S) ? '' : '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las preguntas «juntos» se marcan para los dos</label>') + '</div>' +
+    (vuelo || individual(S) ? '' : '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las preguntas «juntos» se marcan para los dos</label>') +
+    (vieja(S) ? '' : '<div class="acciones" style="margin:8px 0 0"><button class="btn chico" id="ev-camb">Cambiar integrante</button></div>') + cambiosHtml(S, true) + '</div>' +
+    (AVISO_EV ? '<div class="msg ok" id="ev-aviso">' + AVISO_EV + '</div>' : '') +
     (vuelo && !(individual(S) && f === 'B') ? pasosHtml(S, f) : '') +
     bl.map(function (b) {
       return '<div class="sec' + (ABIERTA[b.id] === false ? '' : ' abierta') + '" id="sec-' + b.id + '"><button class="cab" data-sec="' + b.id + '">' + esc(b.titulo) + '<span class="cnt" data-cnt="' + b.id + '">' + contarFilas(S, b.filas) + '</span></button><div class="cuerpo">' +
@@ -591,7 +657,9 @@ function evaluar(S, tab) {
       '<div class="fotos" id="fg">' + (S.fotosGen || []).map(fotoHtml).join('') + '</div><div class="extra"><label class="camara">📷 Foto general<input type="file" accept="image/*" capture="environment" hidden id="foto-gen"></label></div></div>' : '') +
     '<div class="hoja"><div class="acciones" style="margin-top:0">' + (tab !== ids[ids.length - 1] ? '<button class="btn" id="ev-sig">Siguiente: ' + esc(T[ids.indexOf(tab) + 1].t) + '</button>' : '') + '<button class="btn pri" id="ev-fin">Terminar y ver resultados</button><button class="btn" id="ev-sal">Guardar y salir</button><button class="btn peligro" id="ev-bor">Borrar</button></div>' +
     '<p class="sub">Todo se guarda automáticamente en este celular, aunque no haya señal.</p></div>';
+  AVISO_EV = '';
   barra(S); pintarFotos(app);
+  if ($('#ev-camb')) $('#ev-camb').onclick = function () { guardarS(S).then(function () { cambiarIntegrante(S, tab); }); };
   Array.prototype.forEach.call(app.querySelectorAll('[data-tab]'), function (b) { b.onclick = function () { evaluar(S, b.getAttribute('data-tab')); window.scrollTo(0, 0); }; });
   if ($('#ev-sig')) $('#ev-sig').onclick = function () { evaluar(S, ids[ids.indexOf(tab) + 1]); window.scrollTo(0, 0); };
   if ($('#ambos')) $('#ambos').onchange = function () { S.ambos = this.checked; guardarS(S); evaluar(S, tab); };
@@ -630,7 +698,7 @@ function itemHtml(S, k, it) {
   var r = S.ev[k].items[it.id] || {};
   var cab = '<div class="tx"><small>' + it.id + '</small>' + esc(it.t) + ' <span class="sub">(' + it.p + ' pts)</span>' + (it.c ? ' <span class="tag crit">Crítico</span>' : '') + '</div>';
   var dx = it.destreza && !vieja(S) ? destreza(S, k) : null;
-  var est = dx ? '<div class="sub" style="margin:6px 0">Se califica sola con las órdenes: <b>' + (dx.completa ? num(dx.puntos) + ' de ' + it.p : 'pendiente') + '</b></div>' :
+  var est = dx ? '<div class="sub" style="margin:6px 0">Se califica sola con las maniobras: <b>' + (dx.completa ? num(dx.puntos) + ' de ' + it.p : 'pendiente') + '</b></div>' :
     it.destreza ? '<div class="sub" style="margin:6px 0">Se responde sola al calificar las órdenes: <b>' + (r.e === 'c' ? 'Sí' : r.e === 'n' ? 'No' : 'pendiente') + '</b></div>' :
     '<div class="est"><button class="c' + (r.e === 'c' ? ' on' : '') + '" data-est="c">Sí</button><button class="n' + (r.e === 'n' ? ' on' : '') + '" data-est="n">No</button><button class="na' + (r.e === 'na' ? ' on' : '') + '" data-est="na">No aplica</button></div>';
   return '<div class="it" id="it-' + k + '-' + it.id + '" data-k="' + k + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k, 'tp') : '') + (it.tarjeta_obs ? tarjetaHtml(S, otro(k), 'to') : '') + (it.trampa ? trampaHtml(S, it) : '') + est +
@@ -646,11 +714,11 @@ function cronoTick() { var el = CRONO && document.getElementById('crono-' + CRON
 function destrezaHtml(S, k) {
   var d = S.ev[k].des, x = destreza(S, k), caja = 'border-color:var(--verde);background:var(--verde-s)';
   var norte = '<div class="msg info" style="margin:0 0 8px;font-weight:bold">🧭 ' + esc(D.aviso) + '</div>';
-  if (!d) return '<div class="tarj" style="' + caja + '">' + norte + 'Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las órdenes antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear órdenes</button></div></div>';
+  if (!d) return '<div class="tarj" style="' + caja + '">' + norte + 'Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las maniobras antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear maniobras</button></div></div>';
   if (x.vieja) return '<div class="tarj" style="' + caja + '"><b>Destreza (lista ' + esc(S.plantilla) + '): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas</b> – ' + (x.ok ? 'aprobada' : x.completa ? 'no aprobada' : 'incompleta') + '<div class="sub">Sesión de una versión anterior: la destreza no se edita en esta versión.</div></div>';
   if (x.op10) return '<div class="tarj" style="' + caja + '"><b>Destreza (lista OP-10): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas</b> – ' + (x.ok ? 'aprobada' : x.completa ? 'no aprobada' : 'incompleta') + '<div class="sub">Sesión de una versión anterior: la destreza no se edita en esta versión.</div></div>';
-  return '<div class="tarj" style="' + caja + '">' + norte + '<b>Destreza: órdenes ' + x.pts + ' de ' + x.max + ' · miradas ' + d.mir + ' → ' + (x.completa ? num(x.puntos) : '…') + ' de ' + D.valor + ' puntos</b>' +
-    '<div class="sub" style="margin:4px 0 8px">Toca la orden al dictarla (arranca ' + D.segundos + ' s). ' + D.notas.map(function (n) { return '<b>' + n[2] + ' (' + n[1] + ')</b>: ' + esc(n[3]); }).join(' · ') + '. Puntos = ' + D.valor + ' × órdenes / ' + x.max + ', menos 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª.</div>' +
+  return '<div class="tarj" style="' + caja + '">' + norte + '<b>Destreza (' + d.ord.length + ' maniobras): ' + x.pts + ' de ' + x.max + ' · miradas ' + d.mir + ' → ' + (x.completa ? num(x.puntos) : '…') + ' de ' + D.valor + '</b>' +
+    '<div class="sub" style="margin:4px 0 8px">Toca la maniobra al dictarla (arranca ' + D.segundos + ' s). ' + D.notas.map(function (n) { return '<b>' + n[2] + ' (' + n[1] + ')</b>: ' + esc(n[3]); }).join(' · ') + '. Si intervienes, márcala «No la hizo». Puntos = ' + D.valor + ' × puntos / ' + x.max + ', menos 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª (mínimo 0).</div>' +
     d.ord.map(function (o, i) {
       return '<div class="orden"><button class="ord-tx" data-do="' + i + '"><b>' + (i + 1) + '.</b> ' + esc(o) + ' <span class="crono" id="crono-' + k + '-' + i + '">' + cronoTxt(k, i) + '</span></button><div class="nota3">' +
         D.notas.map(function (n) { return '<button class="' + n[0] + (d.v[i] === n[1] ? ' on' : '') + '" data-dv="' + i + ',' + n[1] + '">' + n[2] + '<small>' + n[1] + '</small></button>'; }).join('') + '</div></div>';
@@ -689,7 +757,11 @@ function refrescar(S, k, id) {
 function enlazarDestreza(S, k, id, cont) {
   var listo = function () { aplicarDestreza(S, k); guardarS(S); refrescar(S, k, id); };
   var so = cont.querySelector('#d-sort');
-  if (so) so.onclick = function () { if (S.ev[k].des && !confirm('¿Sortear otras órdenes? Se borra lo calificado.')) return; CRONO = null; sortearOrdenes(S, k); listo(); };
+  var sortear = function () { CRONO = null; sortearOrdenes(S, k); listo(); };
+  /* OP-14: con el modal de la app, nunca confirm() */
+  if (so) so.onclick = function () { if (!S.ev[k].des) return sortear();
+    modal('<h2>¿Sortear otras maniobras?</h2><p>Se borra lo calificado de la destreza de ' + esc(nombre1(S[k])) + ' (maniobras, miradas y puntos).</p><div class="acciones"><button class="btn pri" id="m-no">Cancelar</button><button class="btn peligro" id="m-si">Sortear otras</button></div>');
+    $('#m-no').focus(); $('#m-no').onclick = cerrar; $('#m-si').onclick = function () { cerrar(); sortear(); }; };
   if (!S.ev[k].des || desViejo(S.ev[k].des)) return;
   Array.prototype.forEach.call(cont.querySelectorAll('[data-do]'), function (b) { b.onclick = function () { CRONO = { k: k, i: +b.getAttribute('data-do'), fin: Date.now() + D.segundos * 1000 }; clearInterval(TCRONO); TCRONO = setInterval(cronoTick, 250); cronoTick(); }; });
   Array.prototype.forEach.call(cont.querySelectorAll('[data-dv]'), function (b) { b.onclick = function () { var p = b.getAttribute('data-dv').split(','), d = S.ev[k].des, i = +p[0], v = +p[1]; d.v[i] = d.v[i] === v ? null : v; listo(); }; });
@@ -717,7 +789,7 @@ function pasoActual(S, f) {
 }
 function pasosLinea(S, f, corto) {
   var a = pasoActual(S, f);
-  return P.pasos.map(function (p, i) { var t = corto ? p.split(' (')[0].split(',')[0] : p; return '<span class="paso' + (i === a ? ' on' : i < a ? ' ok' : '') + '">' + (i + 1) + ' ' + esc(t) + '</span>'; }).join(corto ? ' → ' : '');
+  return P.pasos.map(function (p, i) { p = p.replace('{N}', maniobrasDe(S)); var t = corto ? p.split(' (')[0].split(',')[0] : p; return '<span class="paso' + (i === a ? ' on' : i < a ? ' ok' : '') + '">' + (i + 1) + ' ' + esc(t) + '</span>'; }).join(corto ? ' → ' : '');
 }
 function pasosHtml(S, f) { return '<div class="pasos" id="pasos-' + f + '"><b>Orden del vuelo de ' + esc(nombre1(S[f])) + ':</b> ' + pasosLinea(S, f, false) + '</div>'; }
 /* f = dueño del vuelo; la tarjeta «tp» se le muestra a él y la «to» a su observador (el compañero) */
@@ -765,7 +837,7 @@ function enlazarFotos(S, k, raiz) {
       $('#m-si').onclick = function () {
         cerrar(); S.fotosGen = (S.fotosGen || []).filter(function (x) { return x !== fid; });
         ['A', 'B'].forEach(function (q) { var it = S.ev[q].items; Object.keys(it).forEach(function (i) { if (it[i].fotos) it[i].fotos = it[i].fotos.filter(function (x) { return x !== fid; }); }); });
-        borrarFoto(fid).then(function () { return guardarS(S); }).then(function () { b.parentNode.remove(); });
+        fotosLibres(S, [fid]).then(function (l) { return l.length ? borrarFoto(fid) : null; }).then(function () { return guardarS(S); }).then(function () { b.parentNode.remove(); });
       };
     };
   });
@@ -787,7 +859,7 @@ function terminar(S, k) {
   var falt = [];
   evaluados(S).forEach(function (q) { itemsDe(S).forEach(function (it) { if (!(S.ev[q].items[it.id] || {}).e) falt.push([q, it]); }); });
   if (falt.length) {
-    modal('<h2>Faltan ' + falt.length + ' ítems por evaluar</h2><p>Responde cada pregunta (sí, no o no aplica) para los dos pilotos; la de destreza se responde al calificar las órdenes.</p><p class="sub">' +
+    modal('<h2>Faltan ' + falt.length + ' ítems por evaluar</h2><p>Responde cada pregunta (sí, no o no aplica) para los dos pilotos; la de destreza se responde al calificar las maniobras.</p><p class="sub">' +
       falt.slice(0, 8).map(function (x) { return esc(nombre1(S[x[0]])) + ' – ' + x[1].id + ' ' + esc(x[1].t); }).join('<br>') + (falt.length > 8 ? '<br>…' : '') + '</p>' +
       '<div class="acciones"><button class="btn pri" id="m-ir">Ir al primero</button><button class="btn" id="m-no">Cerrar</button></div>');
     $('#m-no').onclick = cerrar;
@@ -808,13 +880,168 @@ $('#visor').onclick = function () { this.classList.remove('on'); };
 function modal(h) { $('#modal-c').innerHTML = h; $('#modal').classList.add('on'); }
 function cerrar() { $('#modal').classList.remove('on'); }
 
+/* ---------- OP-14: Cambiar integrante de una sesión no finalizada ----------
+   Sale el que vuela primero (A) o el segundo (B). Si sale un piloto evaluado y tenía algo anotado, sus respuestas parciales quedan
+   como un registro aparte (estado 'retirado', A y B vacíos y el nombre en S.retirado.nombre: no genera nota, no cuenta como evaluado
+   y el informe del PC no lo toma como intento). Tarjetas: S.ev[f].tp es la del piloto f; S.ev[f].to la de quien observa el vuelo de f.
+   Por eso al salir k se borran S.ev[k].tp y S.ev[otro(k)].to (las suyas) y se conservan S.ev[otro(k)].tp y S.ev[k].to (las del que se queda). */
+var AVISO_EV = '';
+function respuestas(e) { var it = (e && e.items) || {}; return Object.keys(it).filter(function (i) { return it[i].e; }).length; }
+function tieneDatos(e) {
+  if (!e) return false; var it = e.items || {}, d = e.des;
+  return Object.keys(it).some(function (i) { return it[i].e || it[i].nota || (it[i].fotos || []).length; }) || !!(d && ((d.v || []).some(function (v) { return v != null; }) || d.mir)) || (e.rth !== '' && e.rth != null) || !!e.obs;
+}
+function conjMarcadas(S, q) { return itemsDe(S).some(function (it) { return it.tipo === 'conjunta' && (S.ev[q].items[it.id] || {}).e; }); }
+function evNuevo(to, tobs) { var e = { items: {}, rth: '', tp: '', to: to || '' }; if (to && tobs) e.tarjetaObs = tobs; return e; }
+function rolCambio(c) { return c.rol === 'primero' ? 'volaba primero' : c.rol === 'segundo' ? 'volaba segundo' : 'acompañante'; }
+function lineaCambio(c) {
+  return fmt(c.hora).slice(11) + ' · salió <b>' + esc(c.sale || 'sin acompañante') + '</b> (' + rolCambio(c) + ') · ' +
+    (c.como === 'piloto' ? 'entró <b>' + esc(c.entra) + '</b> (se evalúa, desde cero)' : c.como === 'acompanante' ? 'entró <b>' + esc(c.entra) + '</b> como acompañante (no se evalúa)' : 'sin reemplazo') +
+    (c.antes !== c.despues ? ' · pasó a modo ' + c.despues : '') + (c.registro ? ' · sus ' + (c.n || 0) + ' respuestas quedaron como registro incompleto' : '');
+}
+function cambiosHtml(S, corto) {
+  var C = S.cambios || []; if (!C.length) return '';
+  return corto ? '<div class="sub" style="margin-top:8px"><b>Cambios de integrante:</b> ' + C.map(lineaCambio).join('<br>') + '</div>'
+    : '<div class="tarj" style="margin:10px 0"><b>Cambios de integrante en esta prueba</b>' + C.map(function (c) { return '<br>' + lineaCambio(c); }).join('') + '</div>';
+}
+function registroRetirado(S, k, como, nombre, hora) {
+  var s = otro(k), eA = JSON.parse(JSON.stringify(S.ev[k])); eA.to = ''; delete eA.tarjetaObs;
+  var eB = evNuevo(S.ev[s].to, S.ev[s].tarjetaObs && JSON.parse(JSON.stringify(S.ev[s].tarjetaObs)));
+  return { id: uid(), estado: 'retirado', plantilla: S.plantilla, version_app: VERSION, escenarios: S.escenarios || '', A: '', B: '', tipo: S.tipo, lugar: S.lugar, dron: S.dron, modo: 'individual',
+    minutos: S.minutos, maniobras: S.maniobras, evaluador: S.evaluador, nota: S.nota, inicio: S.inicio, ambos: false, obst: S.obst, obs: '', fotosGen: [], gps: S.gps,
+    retirado: { nombre: S[k], rol: k === 'A' ? 'primero' : 'segundo', companero: S[s], modo: S.modo, sesion: S.id, hora: hora, reemplazo: como === 'ninguno' ? '' : nombre, como: como, respuestas: respuestas(S.ev[k]) },
+    ev: { A: eA, B: eB } };
+}
+function textoCambio(S, k, como, nombre) {
+  var s = otro(k), ind = individual(S), L = [];
+  if (ind && k === 'B') {
+    if (como === 'piloto') L.push('Entra <b>' + esc(nombre) + '</b> como piloto que sí se evalúa: la prueba pasa a <b>modo pareja</b>; vuela segundo y empieza desde cero (preguntas, destreza y tarjetas vacías: las sorteas como en una prueba nueva).',
+      'Las respuestas y tarjetas de <b>' + esc(S.A) + '</b> se conservan intactas.' + (conjMarcadas(S, 'A') ? ' Las preguntas «juntos» ya marcadas quedan solo para ' + esc(nombre1(S.A)) + '; desde ahora Preparación y Cierre se marcan por separado para cada uno.' : ''));
+    else L.push(como === 'acompanante' ? 'El acompañante pasa a ser <b>' + esc(nombre) + '</b> (no se evalúa). Los puntajes no cambian.' : 'La prueba sigue sin acompañante. Los puntajes no cambian.');
+    return L;
+  }
+  var n = respuestas(S.ev[k]);
+  L.push(tieneDatos(S.ev[k]) ? 'Sus ' + n + ' respuesta' + (n === 1 ? '' : 's') + ' (y lo demás que tenga anotado) quedan guardadas aparte como <b>registro incompleto (retirado)</b>: no genera informe ni nota, y ' + esc(nombre1(S[k])) + ' vuelve a quedar pendiente para evaluarlo en otra prueba.'
+    : 'No tenía nada anotado: no se guarda registro aparte y ' + esc(nombre1(S[k])) + ' sigue pendiente para otra prueba.');
+  if (como === 'piloto') {
+    L.push('Entra <b>' + esc(nombre) + '</b> en su lugar (' + (k === 'A' ? 'vuela primero' : 'vuela segundo') + ') y empieza desde cero: preguntas, destreza y tarjetas vacías (las sorteas como en una prueba nueva).');
+    if (ind) L.push('Sigue en modo individual' + (S.B ? ' con el mismo acompañante (' + esc(S.B) + ').' : ', sin acompañante.'));
+    else L.push('Las respuestas y tarjetas de <b>' + esc(S[s]) + '</b> se conservan intactas.' + (S.ambos && conjMarcadas(S, s) ? ' Las preguntas «juntos» ya marcadas quedan solo para ' + esc(nombre1(S[s])) + '; desde ahora Preparación y Cierre se marcan por separado para cada uno.' : ''));
+  } else {
+    L.push('La prueba pasa a <b>modo individual</b>: solo se evalúa a <b>' + esc(S[s]) + '</b>, como piloto en el vuelo 1 y como observador en el vuelo 2 (sobre los mismos 100 puntos). ' + (como === 'acompanante' ? 'Acompañante: <b>' + esc(nombre) + '</b> (no se evalúa).' : 'Sin acompañante.') + ' Las respuestas y tarjetas de ' + esc(nombre1(S[s])) + ' se conservan.');
+    if (s === 'B') L.push('<b>Ojo:</b> ' + esc(nombre1(S.B)) + ' volaba segundo y pasa a ser el evaluado (primero en la app). Todas sus respuestas se conservan porque cada pregunta es la misma, pero su vuelo como piloto queda en la pestaña «Vuelo 1» y su trabajo como observador en «Vuelo 2», aunque en el campo el orden haya sido al revés. Las fases del reloj no cambian.');
+  }
+  return L;
+}
+function aplicarCambio(S, k, como, nombre) {
+  var s = otro(k), ind = individual(S), antes = S.modo || 'pareja', hora = Date.now(), sale = S[k], R = null, n = 0;
+  var rol = k === 'A' ? 'primero' : ind ? 'acompañante' : 'segundo';
+  if (!(ind && k === 'B')) { n = respuestas(S.ev[k]); if (tieneDatos(S.ev[k])) R = registroRetirado(S, k, como, nombre, hora); }
+  var limpiarObs = function (q) { S.ev[q].to = ''; delete S.ev[q].tarjetaObs; };
+  if (como === 'piloto') {
+    if (ind && k === 'B') { S.modo = 'pareja'; S.B = nombre; S.ev.B = evNuevo(S.ev.B.to, S.ev.B.tarjetaObs); limpiarObs('A'); S.ambos = !conjMarcadas(S, 'A'); }
+    else { S[k] = nombre; S.ev[k] = evNuevo(S.ev[k].to, S.ev[k].tarjetaObs); limpiarObs(s); if (!ind && S.ambos && conjMarcadas(S, s)) S.ambos = false; }
+  } else {
+    var acomp = como === 'acompanante' ? nombre : '';
+    if (!ind) {
+      if (k === 'B') { S.ev.B = evNuevo(S.ev.B.to, S.ev.B.tarjetaObs); limpiarObs('A'); }
+      else { var eB = S.ev.B, to = S.ev.A.to, tobs = S.ev.A.tarjetaObs; S.A = S.B; S.ev.A = eB; limpiarObs('A'); S.ev.B = evNuevo(to, tobs); }
+      S.modo = 'individual'; S.ambos = false;
+    }
+    S.B = acomp;
+  }
+  S.cambios = (S.cambios || []).concat([{ hora: hora, sale: sale, rol: rol, entra: como === 'ninguno' ? '' : nombre, como: como, antes: antes, despues: S.modo, registro: R ? R.id : null, n: n }]);
+  CRONO = null; S.actualizado = Date.now();
+  if (R) R.actualizado = S.actualizado;
+  /* la sesión y el registro del que sale se guardan en la misma transacción: o quedan los dos o ninguno */
+  return tx('ses', 'readwrite', function (st) { if (R) st.put(R); st.put(S); }).then(function () { return R; });
+}
+function cambiarIntegrante(S, tab) {
+  var st = { k: '', como: '' }, hechos = {}, ind = individual(S);
+  var deHoy = PILOTOS.filter(function (p) { return (p.turnos || []).some(function (t) { return t.ini.slice(0, 10) === hoy(); }); });
+  var rolTxt = function (q) { return q === 'A' ? 'Vuela primero' : ind ? 'Acompañante (no se evalúa)' : 'Vuela segundo'; };
+  var NOMOP = { piloto: 'Otro piloto (se evalúa)', acompanante: 'Acompañante (no se evalúa)', ninguno: ind ? 'Sin acompañante' : 'Sin reemplazo' };
+  todas().then(function (L) { hechos = estadoPilotos(L); dibujar(null); });
+  function opciones() { return ind ? (st.k === 'A' ? ['piloto'] : ['piloto', 'acompanante'].concat(S.B ? ['ninguno'] : [])) : ['piloto', 'acompanante', 'ninguno']; }
+  function dibujar(filtro) {
+    var k = st.k, f = norm(filtro || ''), h = '<div class="hoja"><h1>Cambiar integrante</h1><p class="sub">Prueba de ' + esc(parejaTxt(S)) + ' · empezó a las ' + fmt(S.inicio).slice(11) + '. El reloj sigue corriendo; nada cambia hasta que confirmes.</p>';
+    if (!k) {
+      h += '<h2>¿A quién reemplazas?</h2>' + ['A', 'B'].map(function (q) {
+        return '<button class="sugerido" data-k="' + q + '"><b>' + rolTxt(q) + ': ' + esc(q === 'B' ? nomB(S) : S[q]) + '</b><span>' + (ind && q === 'B' ? 'Cambiar el acompañante o poner a un piloto que sí se evalúa' : respuestas(S.ev[q]) + ' respuesta' + (respuestas(S.ev[q]) === 1 ? '' : 's') + ' marcada' + (respuestas(S.ev[q]) === 1 ? '' : 's')) + '</span></button>';
+      }).join('');
+    } else {
+      var ops = opciones(); if (ops.length === 1) st.como = ops[0];
+      h += '<div class="msg err">Sale: <b>' + esc(k === 'B' ? nomB(S) : S[k]) + '</b> (' + rolTxt(k).toLowerCase() + ')</div>' +
+        '<div class="campo">¿Quién entra?<div class="pils">' + ops.map(function (o) { return '<button class="pil' + (st.como === o ? ' on' : '') + '" data-como="' + o + '">' + NOMOP[o] + '</button>'; }).join('') + '</div></div>';
+      if (st.como === 'piloto' || st.como === 'acompanante') {
+        var fuera = st.como === 'piloto' ? (ind && k === 'B' ? [S.A] : [S.A, S.B]) : [S[otro(k)], S.B && ind ? S.B : ''];
+        var lista = (f ? PILOTOS.filter(function (p) { return norm(p.nombre).indexOf(f) >= 0; }) : st.como === 'piloto' ? deHoy.filter(function (p) { return hechos[p.nombre] !== 'Evaluado'; }) : [])
+          .filter(function (p) { return fuera.indexOf(p.nombre) < 0; }).slice(0, 12);
+        var libre = String(filtro || '').trim().replace(/\s+/g, ' ');
+        h += '<label class="campo">' + (st.como === 'piloto' ? 'Buscar al piloto que entra (se evalúa desde cero)' : 'Acompañante (no se evalúa): busca en la lista o escribe el nombre') + '<input id="c-bus" value="' + esc(filtro || '') + '" placeholder="Escribe parte del nombre" autocomplete="off"></label>' +
+          (st.como === 'acompanante' && libre.length > 2 ? '<button class="sugerido" id="c-libre"><b>Usar «' + esc(libre) + '» como acompañante</b><span>Nombre escrito a mano</span></button>' : '') +
+          (!f && lista.length ? '<p class="sub" style="margin:6px 0">Programados hoy sin evaluar:</p>' : '') +
+          lista.map(function (p) { return '<button class="sugerido" data-p="' + esc(p.nombre) + '"><b>' + esc(p.nombre) + marcaPiloto(hechos, p.nombre) + '</b>' + (p.pareja ? '<span>pareja: ' + esc(p.pareja) + '</span>' : '') + '</button>'; }).join('');
+      } else if (st.como === 'ninguno') h += '<div class="acciones"><button class="btn pri" id="c-ning">' + NOMOP.ninguno + ': revisar y confirmar</button></div>';
+    }
+    h += '<div class="acciones">' + (k ? '<button class="btn" id="c-atras">Atrás</button>' : '') + '<button class="btn" id="c-no">Cancelar</button></div></div>';
+    app.innerHTML = h;
+    Array.prototype.forEach.call(app.querySelectorAll('[data-k]'), function (b) { b.onclick = function () { st.k = b.getAttribute('data-k'); st.como = ''; dibujar(null); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('[data-como]'), function (b) { b.onclick = function () { st.como = b.getAttribute('data-como'); dibujar(null); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { confirmar(b.getAttribute('data-p')); }; });
+    if ($('#c-libre')) $('#c-libre').onclick = function () { confirmar(String(filtro).trim().replace(/\s+/g, ' ')); };
+    if ($('#c-ning')) $('#c-ning').onclick = function () { confirmar(''); };
+    if ($('#c-bus')) { var i = $('#c-bus'); i.oninput = function () { dibujar(i.value); var j = $('#c-bus'); j.focus(); j.setSelectionRange(j.value.length, j.value.length); }; if (filtro != null) i.focus(); }
+    if ($('#c-atras')) $('#c-atras').onclick = function () { st.k = ''; st.como = ''; dibujar(null); };
+    $('#c-no').onclick = function () { evaluar(S, tab); };
+  }
+  function confirmar(nombre) {
+    var k = st.k, como = st.como;
+    modal('<h2>¿Confirmas el cambio?</h2><p>Sale <b>' + esc(k === 'B' ? nomB(S) : S[k]) + '</b> (' + rolTxt(k).toLowerCase() + ').</p><ul style="padding-left:18px">' + textoCambio(S, k, como, nombre).map(function (x) { return '<li style="margin-bottom:6px">' + x + '</li>'; }).join('') + '</ul>' +
+      '<p class="sub">Queda anotado en el historial de la prueba (sale en el informe y en el respaldo) y se guarda de inmediato en este celular.</p>' +
+      '<div class="acciones"><button class="btn pri" id="m-si">Confirmar cambio</button><button class="btn" id="m-no">Cancelar</button></div>');
+    $('#m-no').onclick = cerrar;
+    $('#m-si').onclick = function () {
+      $('#m-si').disabled = true;
+      aplicarCambio(S, k, como, nombre).then(function (R) {
+        cerrar(); var c = S.cambios[S.cambios.length - 1];
+        AVISO_EV = '<b>Cambio hecho.</b> ' + lineaCambio(c) + '.' + (R ? ' El registro incompleto queda en la lista de pruebas y en el respaldo.' : '');
+        evaluar(S, tab); window.scrollTo(0, 0);
+      }).catch(function (er) { cerrar(); modal('<h2>No se pudo guardar el cambio</h2><p>' + esc(er && er.message) + '</p><p>No se cambió nada.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = function () { cerrar(); leerS(S.id).then(function (x) { evaluar(x || S, tab); }); }; });
+    };
+  }
+}
+/* registro del piloto que se retiró: solo lectura; no tiene nota ni informe */
+function verRetirado(S) {
+  $('#barra').style.display = 'none'; clearInterval(TICK);
+  var R = S.retirado || {}, e = S.ev.A, d = e.des ? destreza(S, 'A') : null, n = respuestas(e);
+  var filas = itemsDe(S).filter(function (it) { var x = e.items[it.id] || {}; return x.e || x.nota || (x.fotos || []).length; }).map(function (it) {
+    var x = e.items[it.id], st = ESTX[x.e] || ['Sin evaluar', 'na'];
+    if (it.destreza) st = [d && d.completa ? num(d.puntos) + '/' + it.p : 'Incompleta', 'na'];
+    return '<tr><td>' + it.id + '</td><td>' + esc(it.t) + (x.nota ? '<br><i>' + esc(x.nota) + '</i>' : '') + ((x.fotos || []).length ? '<div class="fotos">' + x.fotos.map(function (f) { return '<img data-foto="' + f + '" alt="Foto">'; }).join('') + '</div>' : '') + '</td><td class="' + st[1] + '">' + st[0] + '</td></tr>';
+  });
+  var tj = [['tp', 'A', 'Tarjeta como piloto'], ['to', 'B', 'Tarjeta como observador']].map(function (x) { var t = tarjetaDe(S, x[1], x[0]); return t ? '<div class="tarj" style="margin:8px 0"><b>' + x[2] + ': ' + esc(t.id) + ' · ' + esc(t.t) + '</b></div>' : ''; }).join('');
+  app.innerHTML = '<div class="hoja inf"><h1>Registro incompleto: se retiró</h1>' +
+    '<div class="msg info">No genera informe ni nota y no cuenta como evaluado: ' + esc(nombre1(R.nombre)) + ' sigue pendiente para evaluarlo en otra prueba. Este registro va en el respaldo.</div>' +
+    '<table><tr><th>Piloto</th><td>' + esc(R.nombre) + '</td><th>Volaba</th><td>' + (R.rol === 'primero' ? 'Primero' : 'Segundo') + '</td></tr>' +
+    '<tr><th>Compañero</th><td>' + esc(R.companero || '–') + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
+    '<tr><th>Prueba del</th><td>' + fmt(S.inicio) + '</td><th>Salió a las</th><td>' + fmt(R.hora).slice(11) + '</td></tr>' +
+    '<tr><th>Reemplazo</th><td>' + (R.como === 'piloto' ? esc(R.reemplazo) + ' (se evalúa)' : R.como === 'acompanante' ? esc(R.reemplazo) + ' (acompañante)' : 'Sin reemplazo') + '</td><th>Evaluador</th><td>' + esc(S.evaluador || '–') + '</td></tr></table>' +
+    '<p class="sub" style="margin-top:10px">' + n + ' de ' + itemsDe(S).length + ' preguntas respondidas antes de salir' + (d ? ' · destreza: ' + d.pts + ' de ' + d.max + (d.completa ? '' : ' (incompleta)') : '') + (e.rth !== '' && e.rth != null ? ' · RTH ' + esc(e.rth) + ' m' : '') + '.</p>' + tj +
+    (filas.length ? '<table><tr><th style="width:34px">#</th><th>Pregunta</th><th style="width:90px">Respuesta</th></tr>' + filas.join('') + '</table>' : '<p class="sub">No tenía respuestas marcadas.</p>') +
+    (e.obs ? '<h2 style="margin-top:12px">Observaciones</h2><p>' + esc(e.obs).replace(/\n/g, '<br>') + '</p>' : '') +
+    '<div class="acciones no-print"><button class="btn" id="r-vol">Volver</button><button class="btn peligro" id="r-bor">Borrar</button></div></div>';
+  pintarFotos(app);
+  $('#r-vol').onclick = inicio; $('#r-bor').onclick = function () { dialogoBorrar([S], false); };
+}
+
 /* ---------- Informe (una hoja por piloto; se imprime o se guarda en PDF) ---------- */
 var ESTX = { c: ['Sí', 'ok'], n: ['No', 'mal'], na: ['No aplica', 'na'] };
 function informePiloto(S, k, primero) {
   var r = calcular(S, k), e = S.ev[k], dur = S.fin ? Math.round((S.fin - S.inicio) / 60000) : '';
   return '<div class="hoja inf' + (primero ? '' : ' salto') + '"><h1>Prueba operacional – Pilotos UAS</h1>' +
     '<table><tr><th>Piloto evaluado</th><td>' + esc(S[k]) + '</td><th>Vuela</th><td>' + (k === 'A' ? 'Primero' : 'Segundo') + '</td></tr>' +
-    '<tr><th>' + (individual(S) ? 'Acompañante (no evaluado)' : 'Compañero (observador)') + '</th><td>' + esc(S[otro(k)]) + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
+    '<tr><th>' + (individual(S) ? 'Acompañante (no evaluado)' : 'Compañero (observador)') + '</th><td>' + esc(S[otro(k)] || '–') + '</td><th>Tipo de operación</th><td>' + esc(S.tipo) + '</td></tr>' +
     '<tr><th>Lugar</th><td>' + esc(S.lugar || '–') + (S.gps ? '<br><span class="sub">' + S.gps.join(', ') + '</span>' : '') + '</td><th>Dron</th><td>' + esc(S.dron || '–') + '</td></tr>' +
     '<tr><th>Inicio</th><td>' + fmt(S.inicio) + '</td><th>Duración</th><td>' + (dur !== '' ? dur + ' min' : '–') + '</td></tr>' +
     (vieja(S) ? '<tr><th>Obstáculo más alto</th><td>' + (S.obst !== '' ? S.obst + ' m' : '–') + '</td><th>Altura de RTH</th><td>' + (e.rth !== '' ? e.rth + ' m' : '–') + '</td></tr>' : '') +
@@ -828,6 +1055,7 @@ function informePiloto(S, k, primero) {
     (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas' + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.puntos != null ? num(x.puntos) + ' de ' + D.valor + ' puntos' : x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
       (x.vieja ? d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep && d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b></span>'; }).join('')
         : d.ord.map(function (o, i) { var n = D.notas.filter(function (z) { return z[1] === d.v[i]; })[0]; return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + (n ? n[2] + ' (' + n[1] + ')' : 'sin calificar') + '</b></span>'; }).join('')) + '</div>'; })() +
+    cambiosHtml(S, false) +
     '<div class="secs">' + lista(S).secciones.map(function (s) {
       return '<h2 style="margin-top:14px">' + s.id + '. ' + esc(tituloSec(S, k, s)) + '</h2><table><tr><th style="width:34px">#</th><th>Pregunta (puntos)</th><th style="width:80px">Respuesta</th></tr>' +
         s.items.map(function (it) {
@@ -847,8 +1075,8 @@ function informe(S) {
   app.innerHTML = '<div class="hoja no-print"><div class="acciones" style="margin:0"><button class="btn pri" id="i-pdf">Imprimir / guardar PDF</button><button class="btn" id="i-comp">Compartir respaldo</button><button class="btn" id="i-vol">Volver</button></div></div>' +
     informePiloto(S, 'A', true) + (individual(S) ? '' : informePiloto(S, 'B', false));
   pintarFotos(app);
-  $('#i-pdf').onclick = function () { document.title = 'Prueba operacional – ' + S.A + ' y ' + S.B; window.print(); document.title = 'Evaluación operacional – Pilotos UAS EPM'; };
-  $('#i-vol').onclick = inicio; $('#i-comp').onclick = function () { exportar([S]); };
+  $('#i-pdf').onclick = function () { document.title = 'Prueba operacional – ' + parejaTxt(S); window.print(); document.title = 'Evaluación operacional – Pilotos UAS EPM'; };
+  $('#i-vol').onclick = inicio; $('#i-comp').onclick = function () { todas().then(function (L) { exportar([S].concat(L.filter(function (x) { return retirado(x) && (x.retirado || {}).sesion === S.id; }))); }); };
 }
 
 /* ---------- Respaldo y resumen ---------- */
@@ -881,14 +1109,20 @@ function importar(f) {
   fr.readAsText(f);
 }
 function exportarCSV(L) {
-  var cab = ['Piloto', 'Vuela', 'Observador', 'Tipo', 'Lugar', 'Dron', 'Evaluador', 'Lista', 'Inicio', 'Duración (min)', 'Estado', 'Puntaje', 'Resultado', 'Puntos obtenidos', 'Puntos posibles', 'Perdió', 'No aplica', 'Destreza: órdenes (de 16)', 'Destreza: puntos (de 10)', 'Miradas a la pantalla', 'Contingencia de su vuelo', 'Tarjeta como observador', 'Reporte que le corresponde', 'Observaciones'].concat(LISTA.items.map(function (it) { return 'P' + it.id; }));
+  /* «Destreza (de 2N)»: si todas las filas tienen el mismo máximo va en el encabezado; si no, cada celda dice puntos/máximo */
+  var maxes = []; L.forEach(function (S) { if (retirado(S)) return; evaluados(S).forEach(function (k) { if (S.ev[k].des) { var m = destreza(S, k).max; if (maxes.indexOf(m) < 0) maxes.push(m); } }); });
+  var MAXC = maxes.length === 1 ? maxes[0] : maxes.length ? 0 : 2 * maniobrasAj(), DESHEAD = MAXC ? 'Destreza (de ' + MAXC + ')' : 'Destreza (puntos/máximo)';
+  var cab = ['Piloto', 'Vuela', 'Observador', 'Tipo', 'Lugar', 'Dron', 'Evaluador', 'Lista', 'Inicio', 'Duración (min)', 'Estado', 'Puntaje', 'Resultado', 'Puntos obtenidos', 'Puntos posibles', 'Perdió', 'No aplica', DESHEAD, 'Destreza: puntos (de 10)', 'Miradas a la pantalla', 'Contingencia de su vuelo', 'Tarjeta como observador', 'Reporte que le corresponde', 'Observaciones'].concat(LISTA.items.map(function (it) { return 'P' + it.id; }));
   var filas = [cab];
   L.forEach(function (S) {
+    /* OP-14: el piloto que se retiró sale en una fila sin puntaje (no cuenta como evaluado) */
+    if (retirado(S)) { var R = S.retirado || {}, f = [R.nombre, R.rol === 'primero' ? '1.º' : '2.º', R.companero || '', S.tipo, S.lugar, S.dron, S.evaluador, S.plantilla, fmt(S.inicio), '', 'Retirado (incompleta)'];
+      while (f.length < cab.length) f.push(''); f[cab.indexOf('Observaciones')] = 'Se retiró a las ' + fmt(R.hora).slice(11) + (R.reemplazo ? '; entró ' + R.reemplazo : '') + ' · ' + (R.respuestas || 0) + ' respuestas parciales'; filas.push(f); return; }
     evaluados(S).forEach(function (k) {
       var r = calcular(S, k), t1 = tarjetaDe(S, k, 'tp'), t2 = tarjetaDe(S, otro(k), 'to'), dx = S.ev[k].des ? destreza(S, k) : null, act = !vieja(S);
       filas.push([S[k], k === 'A' ? '1.º' : '2.º', nombreComp(S, k), S.tipo, S.lugar, S.dron, S.evaluador, S.plantilla, fmt(S.inicio), S.fin ? Math.round((S.fin - S.inicio) / 60000) : '', S.estado === 'final' ? 'Finalizada' : 'En curso',
         num(r.pts), S.estado === 'final' ? (r.aprobado ? 'Aprueba' : 'No aprueba') : '', act ? num(r.obtenidos) : '', act ? r.posibles : '', act ? perdioTxt(r).replace(/^Perdió: /, '').replace('No perdió puntos', '') : r.crit.map(function (x) { return 'crítica ' + x.id; }).join(' '), r.na,
-        dx ? (dx.vieja ? dx.pts + '/' + dx.max : dx.pts) : '', dx && act && dx.completa ? num(dx.puntos) : '', S.ev[k].des ? S.ev[k].des.mir : '',
+        dx ? (dx.max === MAXC ? dx.pts : dx.pts + '/' + dx.max) : '', dx && act && dx.completa ? num(dx.puntos) : '', S.ev[k].des ? S.ev[k].des.mir : '',
         t1 ? t1.id + ' ' + t1.t : '', t2 ? t2.id + ' ' + t2.t : '', repEsperado(S, k) ? repTxt(repEsperado(S, k)) : '', S.ev[k].obs || '']
         /* P1… son las preguntas de OP-11 (puntos obtenidos, NA si no aplica); en sesiones anteriores quedan vacías (otra numeración) */
         .concat(LISTA.items.map(function (it) { if (!act) return ''; var q = r.preguntas.filter(function (x) { return x.id === it.id; })[0], e = (S.ev[k].items[it.id] || {}).e; return q.obtenido != null ? num(q.obtenido) : e === 'na' ? 'NA' : ''; })));

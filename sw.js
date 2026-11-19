@@ -1,6 +1,6 @@
 /* Funciona sin señal: guarda la app en el celular. Cambiar VERSION en cada actualización (y ?v= en index.html). */
-var VERSION = 'evop-v12';
-var ARCHIVOS = ['./', 'index.html', 'plantilla.js?v=12', 'datos.js?v=12', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+var VERSION = 'evop-v14';
+var ARCHIVOS = ['./', 'index.html', 'plantilla.js?v=14', 'datos.js?v=14', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(VERSION).then(function (c) { /* cache: 'reload' para no copiar al SW archivos viejos de la caché HTTP del navegador */ return c.addAll(ARCHIVOS.map(function (u) { return new Request(u, { cache: 'reload' }); })); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return x !== VERSION; }).map(function (x) { return caches.delete(x); })); })); self.clients.claim(); });
 self.addEventListener('fetch', function (e) {
