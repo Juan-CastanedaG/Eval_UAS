@@ -111,6 +111,13 @@ textarea{width:100%;resize:vertical}
 .dato input{width:90px;border:1.5px solid var(--linea);border-radius:9px;padding:8px;font-size:16px}
 .tarj{border:1.5px solid var(--ambar);background:var(--ambar-s);border-radius:10px;padding:10px 12px;margin:10px 14px}
 .tarj b{color:#6b4500}
+.sec.ahora{border:2.5px solid var(--rojo);box-shadow:0 0 0 3px var(--rojo-s)}
+.ahora-av{margin:10px 14px 0;padding:10px 12px;border-radius:10px;background:var(--rojo);color:#fff;font-size:15px}
+.ahora-av b{color:#fff}
+.roles{margin:0 0 6px;padding:6px 8px;border-radius:8px;background:#fff;border:1.5px solid var(--verde);font-size:15px}
+.roles b{color:var(--verde-osc)}
+.esc-oculto{border:1.5px dashed var(--gris,#999);border-radius:10px;padding:10px 12px;margin:10px 14px;background:#fafafa}
+#b-ahora{margin-top:4px;white-space:normal;text-align:left;font-size:12px;padding:4px 8px}
 .amb{display:flex;gap:8px;align-items:center;font-size:14px;margin:0 14px 10px}
 #mostrar{position:fixed;inset:0;z-index:60;background:var(--verde-osc);color:#fff;display:none;flex-direction:column;justify-content:center;padding:28px;text-align:center}
 #mostrar.on{display:flex}
@@ -174,13 +181,13 @@ textarea{width:100%;resize:vertical}
 <div id="modal"><div class="caja" id="modal-c"></div></div>
 <div id="visor"><img alt="Foto" id="visor-img"></div>
 <div id="mostrar"></div>
-<script src="plantilla.js?v=14"></script>
-<script src="datos.js?v=14"></script>
+<script src="plantilla.js?v=16"></script>
+<script src="datos.js?v=16"></script>
 <script>
 'use strict';
-var VERSION = 'EVAL-OP 14';
+var VERSION = 'EVAL-OP 16';
 /* defensa contra caché mezclado: si llegó una plantilla de otra versión, se avisa en vez de fallar en silencio */
-var PLANTILLA_ESPERADA = 'OP-13';
+var PLANTILLA_ESPERADA = 'OP-16';
 if (!window.PLANTILLA || window.PLANTILLA.version !== PLANTILLA_ESPERADA || !window.PLANTILLA.tarjetas_op8 || !window.PILOTOS) {
   document.getElementById('app').innerHTML = '<div class="msg err" style="font-size:22px;font-weight:bold;line-height:1.35;padding:22px;border:3px solid var(--rojo)">Versión mezclada: cierra la app, abre con señal y recarga.' +
     '<div style="font-size:14px;font-weight:normal;margin-top:10px">La app es ' + VERSION + ' y la lista cargada es ' + ((window.PLANTILLA && window.PLANTILLA.version) || 'ninguna') + ' (se esperaba ' + PLANTILLA_ESPERADA + '). Tus datos guardados no se han tocado.</div></div>';
@@ -190,11 +197,15 @@ if (!window.PLANTILLA || window.PLANTILLA.version !== PLANTILLA_ESPERADA || !win
 var P = window.PLANTILLA, PILOTOS = window.PILOTOS || [], DRONES = window.DRONES || [];
 /* Listas de preguntas: la actual (OP-10) y la de OP-8/OP-9 (28 preguntas), para abrir sesiones y respaldos anteriores */
 function armarLista(secs) { var L = { secciones: secs, items: [], SEC: {} }; secs.forEach(function (s) { L.SEC[s.id] = s; s.items.forEach(function (it) { it.s = s.id; it.tipo = s.tipo; L.items.push(it); }); }); return L; }
-var LISTA = armarLista(P.secciones), LISTA_OP10 = armarLista(P.secciones_op10 || P.secciones), LISTA_OP9 = armarLista(P.secciones_op9 || P.secciones);
-/* versión de la lista de la sesión: 'OP-9' (también OP-8), 'OP-10' o la actual (OP-11, por puntos, sin críticas) */
-function verLista(S) { var v = (S && S.plantilla) || ''; return /^OP-[89]$/.test(v) ? 'OP-9' : v === 'OP-10' ? 'OP-10' : 'actual'; }
-function vieja(S) { return verLista(S) !== 'actual'; }
-function lista(S) { var v = verLista(S); return v === 'OP-9' ? LISTA_OP9 : v === 'OP-10' ? LISTA_OP10 : LISTA; }
+/* OP-15: la lista OP-13 es la misma de OP-15 salvo la pregunta «por_piloto» (prenda reflectiva), que en OP-13 era conjunta y con otro texto */
+/* OP-16: las preguntas 19 y 27 (escenarios por rol) y 24-25 (misión trampa) cambiaron de texto; las sesiones OP-15 y anteriores ven el de antes (t_op15) */
+function seccionesOP15(secs) { var c = JSON.parse(JSON.stringify(secs)); c.forEach(function (s) { s.items.forEach(function (it) { if (it.t_op15) it.t = it.t_op15; if (it.corto_op15) it.corto = it.corto_op15; delete it.mision; }); }); return c; }
+function seccionesOP13(secs) { var c = seccionesOP15(secs); c.forEach(function (s) { s.items.forEach(function (it) { if (!it.por_piloto) return; if (it.t_op13) it.t = it.t_op13; if (it.corto_op13) it.corto = it.corto_op13; delete it.por_piloto; }); }); return c; }
+var LISTA = armarLista(P.secciones), LISTA_OP15 = armarLista(seccionesOP15(P.secciones)), LISTA_OP13 = armarLista(seccionesOP13(P.secciones)), LISTA_OP10 = armarLista(P.secciones_op10 || P.secciones), LISTA_OP9 = armarLista(P.secciones_op9 || P.secciones);
+/* versión de la lista de la sesión: 'OP-9' (también OP-8), 'OP-10', 'OP-13' (OP-11 a OP-14: por puntos, prenda reflectiva conjunta) o la actual (OP-15) */
+function verLista(S) { var v = (S && S.plantilla) || ''; return /^OP-[89]$/.test(v) ? 'OP-9' : v === 'OP-10' ? 'OP-10' : v === P.version || /^OP-(1[5-9]|[2-9]\d)$/.test(v) ? 'actual' : 'OP-13'; }
+function vieja(S) { var v = verLista(S); return v === 'OP-9' || v === 'OP-10'; }
+function lista(S) { var v = verLista(S); return v === 'OP-9' ? LISTA_OP9 : v === 'OP-10' ? LISTA_OP10 : v === 'OP-13' ? LISTA_OP13 : S && S.plantilla === 'OP-15' ? LISTA_OP15 : LISTA; }
 function itemsDe(S) { return lista(S).items; }
 function itemPorId(S, id) { return itemsDe(S).filter(function (x) { return x.id === id; })[0]; }
 function puntosLista(L) { return L.items.reduce(function (a, x) { return a + x.p; }, 0); }
@@ -207,9 +218,10 @@ function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function nombre1(n) { var p = String(n || '').split(' ').filter(Boolean); return p.length >= 4 ? p[0] + ' ' + p[2] : p.length === 3 ? p[0] + ' ' + p[1] : p.join(' '); }
 function ajustes() { try { return JSON.parse(localStorage.getItem('evop:aj')) || {}; } catch (e) { return {}; } }
-function guardarAjustes(a) { localStorage.setItem('evop:aj', JSON.stringify(a)); }
-/* maniobras de destreza por piloto (Ajustes, 4–12, por defecto 8); cada prueba guarda la suya en S.maniobras */
-function maniobrasAj() { var a = ajustes(), M = (window.PLANTILLA.destreza || {}).maniobras || { defecto: 8, minimo: 4, maximo: 12 }, n = parseInt(a.maniobras, 10); return isNaN(n) ? M.defecto : Math.max(M.minimo, Math.min(M.maximo, n)); }
+function guardarAjustes(a) { try { localStorage.setItem('evop:aj', JSON.stringify(a)); } catch (e) {} }
+/* maniobras de destreza por piloto (OP-15: en Administración, 4–12, por defecto 8; si nunca se fijó ahí, vale lo que quedó en Ajustes de EVAL-OP 14);
+   cada prueba guarda la suya en S.maniobras */
+function maniobrasAj() { var M = (window.PLANTILLA.destreza || {}).maniobras || { defecto: 8, minimo: 4, maximo: 12 }, ad = admin(), v = ad.maniobras != null ? ad.maniobras : ajustes().maniobras; return rango(v, M.minimo, M.maximo, M.defecto); }
 function maniobrasDe(S) { return S && S.maniobras ? S.maniobras : 8; }
 function notaMin() { var a = ajustes(); return a.nota != null ? +a.nota : 90; }
 function hoy() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
@@ -301,6 +313,7 @@ function desViejo(d) { return !!(d && d.c); }
 /* 6 combinaciones nariz + desplazamiento (horizontal 10–15 m o vertical), la mayoría con la nariz desalineada; sin alejarse más de
    D.maximo_m del dronpuerto en cada eje; «Baja» solo después de «Sube»; nunca la misma secuencia que el compañero */
 function sortearOrdenes(S, k) {
+  if (nuevoModelo(S)) return sortearComandos(S, k);
   /* N maniobras, todas combinaciones sorteadas (nariz con punto cardinal + desplazamiento horizontal de 10–15 m o vertical);
      sin regreso ni aterrizaje; verticales alternando «Sube» y «Baja» (nunca baja antes de subir); máximo D.maximo_m por eje;
      casi todas con la nariz hacia otro lado del desplazamiento; nunca la misma secuencia que el compañero */
@@ -321,6 +334,7 @@ function sortearOrdenes(S, k) {
     ord = L;
   } while ((!ok || ord.join('|') === otra) && ++n < 3000);
   S.ev[k].des = { ord: ord, v: ord.map(function () { return null; }), mir: 0, inter: false };
+
 }
 function destreza(S, k) {
   var d = S.ev[k].des;
@@ -337,11 +351,43 @@ function destreza(S, k) {
     var D10 = P.destreza_op10 || { minimo: 12, miradas: 2 }, cp = comp || d.inter;
     return { pts: pts, max: max, completa: cp, ok: cp && !d.inter && pts >= D10.minimo && d.mir <= D10.miradas, mir: d.mir, inter: d.inter, op10: true };
   }
-  /* OP-11: proporcional sobre D.valor, −1 por cada mirada después de la 2.ª */
+  /* OP-16: cada comando vale max(0, 2 − correcciones − penalizaciones) y la destreza = D.valor × suma / 2N, sin descuento global */
+  if (desN(d)) { pts = 0; comp = true; d.ord.forEach(function (o, i) { var p = ptsCmd(d, i); if (p == null) comp = false; else pts += p; }); return { pts: pts, max: max, completa: comp, ok: comp, mir: (d.pen || []).length, inter: false, puntos: r1(D.valor * pts / max) }; }
+  /* OP-11 a OP-15: proporcional sobre D.valor, −1 por cada mirada después de la 2.ª */
   var puntos = Math.max(0, r1(D.valor * pts / max - Math.max(0, d.mir - D.miradas_libres)));
   return { pts: pts, max: max, completa: comp, ok: comp, mir: d.mir, inter: false, puntos: puntos };
 }
 /* la pregunta de destreza queda respondida cuando se califican todas las maniobras; aporta su valor proporcional */
+/* OP-16: destreza por comando. Cada comando tiene dos partes: GIRAR (nariz a un punto cardinal) y MOVER (hacia un punto cardinal, o subir o
+   bajar; sin distancias: el evaluador dice «alto»). Por comando: d.k[i] = 'b' (la hizo) | 'n' (no la hizo) | null; d.cor[i] = correcciones;
+   d.pen = [{i, m: 'demora' | 'pantalla'}]. Puntos del comando = 0 si no la hizo; si no, max(0, 2 − correcciones − penalizaciones).
+   Demora: más de segundosDe(S) (Administración, 5–30, por defecto 10) para el comando completo. */
+var SEGR = { minimo: 5, maximo: 30 };
+function segundosAdm() { return rango(admin().segundos, SEGR.minimo, SEGR.maximo, D.segundos); }
+function segundosDe(S) { return S && S.segundos ? S.segundos : D.segundos; }
+function desN(d) { return !!(d && d.k && d.pen && d.cor); }
+var MOTIVOS = { demora: 'demora', pantalla: 'miró la pantalla' };
+function penDe(d, i) { return (d.pen || []).filter(function (p) { return p.i === i; }); }
+function ptsCmd(d, i) { var c = d.cor[i] || 0, p = penDe(d, i).length; if (d.k[i] === 'n') return 0; if (d.k[i] !== 'b' && !c && !p) return d.v[i] == null ? null : d.v[i]; return Math.max(0, 2 - c - p); }
+function penTxt(L) { var c = {}; L.forEach(function (p) { c[p.m] = (c[p.m] || 0) + 1; }); return Object.keys(c).map(function (m) { return (MOTIVOS[m] || m) + (c[m] > 1 ? ' ×' + c[m] : ''); }).join(', '); }
+function marcaCmd(d, i) { var p = ptsCmd(d, i), c = d.cor[i] || 0, n = penDe(d, i).length; if (p == null) return 'sin calificar'; if (d.k[i] === 'n') return 'No la hizo (0)'; return (c || n ? [c ? 'Corrigió ×' + c : '', n ? 'Penalización ×' + n + ' (' + penTxt(penDe(d, i)) + ')' : ''].filter(Boolean).join(' · ') : 'Bien') + ' → ' + p; }
+/* comandos sin distancias: giro + movimiento distinto del giro (no trivial), sin repetir el anterior; subir/bajar alternados (nunca baja antes de subir) */
+function sortearComandos(S, k) {
+  var N = maniobrasDe(S), otra = ((S.ev[otro(k)].des || {}).ord || []).join('|'), ord, n = 0;
+  do {
+    var L = [], z = 0, nv = 1 + Math.floor(Math.random() * Math.max(1, Math.floor(N / 4))), pos = [];
+    while (pos.length < nv) { var p = Math.floor(Math.random() * N); if (pos.indexOf(p) < 0) pos.push(p); } pos.sort(function (a, b) { return a - b; });
+    for (var i = 0; i < N; i++) {
+      var nariz = azar(CARD), j = pos.indexOf(i), t;
+      if (j >= 0) { var sube = z === 0 || Math.random() < 0.5; z += sube ? 1 : -1; t = 'Nariz al ' + D.puntos[nariz] + '… ' + (sube ? 'sube.' : 'baja.'); }
+      else t = 'Nariz al ' + D.puntos[nariz] + '… muévete al ' + D.puntos[azar(CARD.filter(function (c) { return c !== nariz; }))] + '.';
+      if (L.length && L[L.length - 1] === t) { i--; continue; }
+      L.push(t);
+    }
+    ord = L;
+  } while (ord.join('|') === otra && ++n < 500);
+  S.ev[k].des = { ord: ord, v: ord.map(function () { return null; }), k: ord.map(function () { return null; }), cor: ord.map(function () { return 0; }), pen: [], mir: 0, inter: false };
+}
 function aplicarDestreza(S, k) {
   var it = itemsDe(S).filter(function (x) { return x.destreza; })[0], r = S.ev[k].items[it.id] || (S.ev[k].items[it.id] = {}), d = destreza(S, k);
   r.e = d.completa ? 'c' : ''; r.obt = d.completa ? d.puntos : null; r.t = Date.now();
@@ -351,7 +397,8 @@ function txt(S, s) { return String(s); }
 /* Tarjetas: dos por vuelo. S.ev[f].tp = la del piloto que vuela (pregunta «tarjeta» de f); S.ev[f].to = la del observador de ese vuelo
    (pregunta «tarjeta_obs» del compañero). Al asignarlas se guarda una copia (S.ev[f].tarjeta / tarjetaObs). P.tarjetas_op8 solo para leer EVAL-OP 8. */
 var SLOT = { tp: { copia: 'tarjeta', para: 'piloto' }, to: { copia: 'tarjetaObs', para: 'observador' } };
-function buscarTarjeta(id) { return id ? P.tarjetas.concat(P.tarjetas_op8 || []).filter(function (x) { return x.id === id; })[0] : null; }
+/* OP-15: el catálogo incluye los escenarios editados y creados en Administración (también los ocultos, para leer pruebas viejas sin copia) */
+function buscarTarjeta(id) { return id ? escenarios(true).concat(P.tarjetas_op8 || []).filter(function (x) { return x.id === id; })[0] : null; }
 function tarjetaDe(S, f, slot) { slot = slot || 'tp'; var e = S.ev[f], id = e[slot]; if (!id) return null; var c = e[SLOT[slot].copia]; return c && c.id === id ? c : buscarTarjeta(id); }
 function tarjetasDe(S, k) { return [tarjetaDe(S, k, 'tp')].filter(Boolean); }
 function nivel(t) { return String(t.tiempo || '').split(':')[0].trim(); }
@@ -365,12 +412,175 @@ var PREGUNTA_ALTO = '¿Qué harías ahora con el dron (o la batería)?';
 function repTxt(r) { return r === 'MOR+VOR' ? 'MOR y VOR' : r || '–'; }
 /* reporte que le corresponde: el de la tarjeta de piloto de su vuelo («No requiere» ya viene como VOR) */
 function repEsperado(S, k) { var t = tarjetaDe(S, k, 'tp'); return t ? t.reporte_esperado || 'VOR' : ''; }
+/* ---------- OP-16: escenarios por roles ----------
+   Cada escenario dice a quién se le muestra (mostrar_a: piloto | observador | cualquiera), quién responde y se evalúa
+   (responde: piloto | observador | quien_lo_ve), cuándo (momento: antes_del_vuelo, en_vuelo, cambio_de_bateria), si el ejercicio
+   sigue después (continua) y si entra al sorteo (en_sorteo). Los casilleros de una prueba son los de siempre:
+   S.ev.A.tp = A como piloto (vuelo 1, pregunta 19 de A) · S.ev.A.to = B como observador (vuelo 1, pregunta 27 de B)
+   S.ev.B.tp = B como piloto (vuelo 2) · S.ev.B.to = A como observador (vuelo 2). En individual solo A.tp y B.to.
+   antes_del_vuelo es del vuelo 1 (preparación); cambio_de_bateria es del vuelo 2 (fase de bitácora y cambio, con los roles del vuelo 2).
+   En cada vuelo, a lo sumo un escenario en tierra y a lo sumo uno en vuelo que no continúa (va de último, después de la trampa).
+   Nunca se repite un escenario ni una familia (variantes del mismo evento) en la prueba. El sorteo se hace una sola vez, al tocar
+   «Empezar la prueba» (S.sorteo); la copia de cada escenario lleva asig = {mostrar, momento}. Rotación: primero los menos usados
+   en las pruebas guardadas en el celular, al azar entre los de igual uso. Las sesiones sin S.sorteo (OP-15 y anteriores) siguen igual. */
+var MOMENTOS = [['antes_del_vuelo', 'Antes del vuelo'], ['en_vuelo', 'En vuelo'], ['cambio_de_bateria', 'Cambio de batería']];
+var MOSTRAR_OP = [['piloto', 'Al piloto'], ['observador', 'Al observador'], ['cualquiera', 'A cualquiera de los dos (la app sortea a quién)']];
+var RESPONDE_OP = [['piloto', 'El piloto'], ['observador', 'El observador'], ['quien_lo_ve', 'Quien lo ve (la persona a quien se le muestra)']];
+function momTxt(m) { var x = MOMENTOS.filter(function (y) { return y[0] === m; })[0]; return x ? x[1] : String(m || ''); }
+function modeloT(t) {
+  var para = t.para === 'observador' ? 'observador' : 'piloto', mo = Array.isArray(t.momento) ? t.momento.filter(function (m) { return MOMENTOS.some(function (y) { return y[0] === m; }); }) : null;
+  return { mostrar_a: ['piloto', 'observador', 'cualquiera'].indexOf(t.mostrar_a) >= 0 ? t.mostrar_a : para,
+    responde: ['piloto', 'observador', 'quien_lo_ve'].indexOf(t.responde) >= 0 ? t.responde : para,
+    momento: mo && mo.length ? mo : !t.clase || t.clase === 'ejecutable en vuelo' ? ['en_vuelo'] : [],
+    continua: t.continua != null ? !!t.continua : nivel(t) === 'bajo' };
+}
+/* requiere_aterrizar (o el vuelo termina): va siempre de último en su vuelo, después de la destreza y de la misión */
+function requiereAterrizar(t) { var m = modeloT(t); return t.requiere_aterrizar != null ? !!t.requiere_aterrizar : !m.continua; }
+function ultimo(t) { return requiereAterrizar(t) || !modeloT(t).continua; }
+function rolesEval(t) { var m = modeloT(t); return m.responde !== 'quien_lo_ve' ? [m.responde] : m.mostrar_a === 'cualquiera' ? ['piloto', 'observador'] : [m.mostrar_a]; }
+function slotRol(slot) { return slot === 'tp' ? 'piloto' : 'observador'; }
+function momentosVuelo(f) { return f === 'A' ? ['antes_del_vuelo', 'en_vuelo'] : ['en_vuelo', 'cambio_de_bateria']; }
+function momentosValidos(t, f) { var m = modeloT(t); return m.momento.filter(function (x) { return momentosVuelo(f).indexOf(x) >= 0 && (x === 'en_vuelo' || m.continua); }); }
+function sirve(t, f, slot) { return rolesEval(t).indexOf(slotRol(slot)) >= 0 && momentosValidos(t, f).length > 0; }
+function nuevoModelo(S) { return !!(S && S.sorteo); }
+function slotsDe(S) { return individual(S) ? [['A', 'tp'], ['B', 'to']] : [['A', 'tp'], ['A', 'to'], ['B', 'tp'], ['B', 'to']]; }
+function evaluadoDe(f, slot) { return slot === 'tp' ? f : otro(f); }
+function nomK(S, k) { return k === 'B' && individual(S) ? (S.B ? S.B + ' (acompañante)' : 'el acompañante') : S[k]; }
+function itemEsc(S, slot) { return itemsDe(S).filter(function (x) { return slot === 'tp' ? x.tarjeta : x.tarjeta_obs; })[0]; }
+function mostrarDe(S, rol, m) { var sinA = individual(S) && !S.B; return m.responde === 'quien_lo_ve' ? rol : m.mostrar_a === 'cualquiera' ? (sinA ? rol : azar(['piloto', 'observador'])) : m.mostrar_a; }
+/* lo asignado en un casillero: escenario, a quién se le muestra (rol y persona), momento, a quién evalúa */
+function asigDe(S, f, slot) {
+  var t = tarjetaDe(S, f, slot); if (!t) return null;
+  var a = t.asig || {}, m = modeloT(t), rol = slotRol(slot), mo = a.momento || momentosValidos(t, f)[0] || 'en_vuelo';
+  var mostrar = a.mostrar || (m.responde === 'quien_lo_ve' || m.mostrar_a === 'cualquiera' ? rol : m.mostrar_a);
+  return { t: t, mostrar: mostrar, momento: mo, rol: rol, quien: mostrar === 'piloto' ? f : otro(f), evaluado: evaluadoDe(f, slot), continua: m.continua, aterriza: requiereAterrizar(t), ultimo: ultimo(t) };
+}
+function usoEscenarios(L, sinId) {
+  var u = {}; (L || []).forEach(function (S) { if (!S || !S.ev || S.id === sinId || retirado(S)) return; ['A', 'B'].forEach(function (g) { ['tp', 'to'].forEach(function (s) { var id = S.ev[g] && S.ev[g][s]; if (id) u[id] = (u[id] || 0) + 1; }); }); });
+  return u;
+}
+function barajar(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+/* candidatos de un casillero, ordenados por uso (rotación) y al azar entre los de igual uso */
+function candidatos(S, f, slot, cat, uso, mom) {
+  var rol = slotRol(slot), sinA = individual(S) && !S.B, C = [];
+  barajar(cat).forEach(function (t) {
+    if (!sirve(t, f, slot)) return; var m = modeloT(t), mostrar = mostrarDe(S, rol, m);
+    if (sinA && mostrar !== rol) return; /* individual sin acompañante: solo se le puede mostrar al evaluado */
+    barajar(momentosValidos(t, f)).forEach(function (x) { if (!mom || x === mom) C.push({ t: t, momento: x, mostrar: mostrar }); });
+  });
+  return C.map(function (c, i) { return [c, i]; }).sort(function (a, b) { return ((uso[a[0].t.id] || 0) - (uso[b[0].t.id] || 0)) || (a[1] - b[1]); }).map(function (x) { return x[0]; });
+}
+/* ¿el candidato c choca con lo ya asignado? (mismo escenario, misma familia, dos en tierra o dos que terminan el vuelo en el mismo vuelo) */
+function choca(asg, f, c, vetados) {
+  var ids = (vetados || []).slice(), fam = [], tierra = 0, termina = 0;
+  Object.keys(asg).forEach(function (k) { var x = asg[k]; if (!x) return; ids.push(x.t.id); fam = fam.concat(x.t.familias || []); if (k.charAt(0) === f) { if (x.momento !== 'en_vuelo') tierra++; else if (ultimo(x.t)) termina++; } });
+  if (ids.indexOf(c.t.id) >= 0) return 'repetido';
+  if ((c.t.familias || []).some(function (y) { return fam.indexOf(y) >= 0; })) return 'familia';
+  if (c.momento !== 'en_vuelo' && tierra) return 'tierra';
+  if (c.momento === 'en_vuelo' && ultimo(c.t) && termina) return 'termina';
+  return '';
+}
+function resolver(S, libres, asg, cat, uso, moms, vetados) {
+  var orden = barajar(libres), C = {}, pasos = 0;
+  orden.forEach(function (x) { var k = x.join('.'); C[k] = candidatos(S, x[0], x[1], cat, uso, moms && moms[k]); });
+  function dfs(i) {
+    if (i === orden.length) return true; var x = orden[i], k = x.join('.'), L = C[k];
+    for (var j = 0; j < L.length; j++) { if (++pasos > 200000) return false; if (choca(asg, x[0], L[j], vetados)) continue; asg[k] = L[j]; if (dfs(i + 1)) return true; delete asg[k]; }
+    return false;
+  }
+  return dfs(0);
+}
+/* rotación: primero intenta con los menos usados del celular (nivel de uso 0, luego 1…); al azar dentro de cada nivel */
+function resolverRot(S, libres, asg, cat, uso, moms, vet) {
+  var niv = cat.map(function (t) { return uso[t.id] || 0; }).filter(function (x, i, A) { return A.indexOf(x) === i; }).sort(function (a, b) { return a - b; });
+  for (var i = 0; i < niv.length; i++) { var c2 = cat.filter(function (t) { return (uso[t.id] || 0) <= niv[i]; }), a2 = Object.assign({}, asg); if (resolver(S, libres, a2, c2, uso, moms, vet)) { Object.assign(asg, a2); return true; } }
+  return false;
+}
+function asgActual(S, menos) { var a = {}; slotsDe(S).forEach(function (x) { var k = x.join('.'); if (k === menos) return; var s = asigDe(S, x[0], x[1]); if (s) a[k] = { t: s.t, momento: s.momento, mostrar: s.mostrar }; }); return a; }
+/* OP-16: escenarios con dirección (aves, otro dron, cometa): la situación trae {PUNTO} y {ALTURA}; se sortean al asignar (con el resto, al empezar)
+   y quedan en la copia (asig.dir). Los puntos cardinales son los mismos de la destreza (November, Echo, Sierra, Whiskey). */
+/* datos que se sortean: {PUNTO} (punto cardinal), {ALTURA} (respecto al dron) y {DIST} (distancia aproximada); solo en escenarios con amenaza imaginaria */
+var ALTURAS = ['arriba del dron', 'abajo del dron', 'a su nivel'], DISTS = ['unos 5 m', 'unos 10 m', 'unos 15 m'];
+function dirSorteo() { return { punto: D.puntos[azar(CARD)], altura: azar(ALTURAS), dist: azar(DISTS) }; }
+function txtEscT(t, campo) { var d = t && t.asig && t.asig.dir, x = String((t && t[campo]) || ''); return x.replace(/\{PUNTO\}/g, d ? d.punto : '[punto cardinal]').replace(/\{ALTURA\}/g, d ? d.altura : '[arriba, abajo o a su nivel]').replace(/\{DIST\}/g, d && d.dist ? d.dist : '[distancia]'); }
+/* «por el Echo, arriba del dron, a unos 10 m»: solo lo que usa el escenario */
+function datoTxt(t) { var d = t && t.asig && t.asig.dir; if (!d) return ''; var x = [t.situacion, t.espera, t.nota_evaluador].join(' '), L = []; if (/\{PUNTO\}/.test(x)) L.push('por el ' + d.punto); if (/\{ALTURA\}/.test(x)) L.push(d.altura); if (/\{DIST\}/.test(x) && d.dist) L.push('a ' + d.dist); return L.join(', '); }
+function ponerSlot(S, f, slot, c) {
+  S.ev[f][slot] = c.t.id; var cp = copiaT(c.t); cp.asig = { mostrar: c.mostrar, momento: c.momento }; if (c.t.direccion) cp.asig.dir = c.dir || dirSorteo(); S.ev[f][SLOT[slot].copia] = cp;
+  S.sorteo = S.sorteo || { hora: Date.now(), version: P.version }; S.sorteo.usados = (S.sorteo.usados || []).concat([c.t.id]).filter(function (x, i, A) { return A.indexOf(x) === i; });
+}
+/* OP-16: orden de los bloques del vuelo f ('destreza' o 'mision' primero) y misión trampa del vuelo n (sorteados al empezar) */
+function ordenVuelo(S, f) { var o = S && S.sorteo && S.sorteo.orden; return o && o[f] === 'mision' ? 'mision' : 'destreza'; }
+function misionDe(S, n) { var m = S && S.sorteo && S.sorteo.misiones, k = m && m[String(n)]; return k && P.misiones[k] ? Object.assign({ id: k }, P.misiones[k]) : null; }
+function catSorteo() { return escenarios().filter(function (t) { return t.en_sorteo !== false; }); }
+/* sorteo de la prueba (todos de una vez); soloFaltantes: conserva lo asignado y llena lo vacío (cambio de integrante). Devuelve los casilleros sin escenario. */
+function sortearPrueba(S, L, soloFaltantes) {
+  var cat = catSorteo(), uso = usoEscenarios(L, S.id), asg = soloFaltantes ? asgActual(S) : {}, vet = soloFaltantes ? ((S.sorteo || {}).usados || []).filter(function (id) { return !Object.keys(asg).some(function (k) { return asg[k].t.id === id; }); }) : [];
+  var libres = slotsDe(S).filter(function (x) { return !asg[x.join('.')]; });
+  if (!soloFaltantes) { var mA = azar(['a', 'b']); S.sorteo = { hora: Date.now(), version: P.version, usados: [], orden: { A: azar(['destreza', 'mision']), B: azar(['destreza', 'mision']) }, misiones: { '1': mA, '2': mA === 'a' ? 'b' : 'a' } }; ['A', 'B'].forEach(function (g) { ['tp', 'to'].forEach(function (s) { S.ev[g][s] = ''; delete S.ev[g][SLOT[s].copia]; }); }); }
+  if (!libres.length) return [];
+  if (!resolverRot(S, libres, asg, cat, uso, null, vet)) libres.forEach(function (x) { resolverRot(S, [x], asg, cat, uso, null, vet); });
+  libres.forEach(function (x) { var c = asg[x.join('.')]; if (c) ponerSlot(S, x[0], x[1], c); });
+  return libres.filter(function (x) { return !asg[x.join('.')]; });
+}
+/* fases del cronograma: inicio del vuelo f, fin del vuelo f y comienzo del cambio de batería (fin del vuelo 1) */
+function faseMin(S, f, fin) { var C = cronoDe(S), x = C.filter(function (y) { return y.vuelo === f; })[0]; return x ? (fin ? x.a : x.de) : Infinity; }
+function respK(S, q, id) { return !!(S.ev[q] && (S.ev[q].items[id] || {}).e); }
+function idTrampa(S, n) { var x = itemsDe(S).filter(function (y) { return y.trampa === n; })[0]; return x ? x.id : ''; }
+function escVuelo(S, f) {
+  var X = []; ['to', 'tp'].forEach(function (slot) { if (!slotsDe(S).some(function (x) { return x[0] === f && x[1] === slot; })) return; var a = asigDe(S, f, slot); if (!a || a.momento === 'en_vuelo') X.push({ slot: slot, a: a }); });
+  return { antes: X.filter(function (x) { return !x.a || !x.a.ultimo; }), despues: X.filter(function (x) { return x.a && x.a.ultimo; }) };
+}
+function txtEsc(S, f, slot) { return 'Escenario de ' + nombre1(nomK(S, evaluadoDe(f, slot))) + ' como ' + slotRol(slot); }
+/* pasos del vuelo f con el modelo por roles */
+function pasosN(S, f) {
+  var e = escVuelo(S, f), L = [], soloObs = individual(S) && f === 'B', n = f === 'A' ? 1 : 2, kt = individual(S) ? 'A' : f;
+  var esc1 = function (x, ult) { var it = itemEsc(S, x.slot); return { t: txtEsc(S, f, x.slot) + (ult ? ' (de último: termina en aterrizaje)' : ''), hecho: respK(S, evaluadoDe(f, x.slot), it.id), esc: x.slot }; };
+  var des = { t: 'Destreza (' + maniobrasDe(S) + ' maniobras)', hecho: destreza(S, f).completa, bloque: 'destreza' }, mis = { t: 'Misión', hecho: respK(S, kt, idTrampa(S, n)), bloque: 'mision' };
+  var B = soloObs ? [mis] : ordenVuelo(S, f) === 'mision' ? [mis, des] : [des, mis];
+  if (!soloObs) L.push({ t: 'Despegue, estacionario, C2 y comandos', hecho: ['15', '16', '17'].every(function (i) { return respK(S, f, i); }) });
+  /* los escenarios que siguen van entre los dos bloques; los que requieren aterrizar, de últimos (después de la destreza y la misión) */
+  L.push(B[0]); e.antes.forEach(function (x) { L.push(esc1(x, false)); }); if (B[1]) L.push(B[1]);
+  e.despues.forEach(function (x) { L.push(esc1(x, true)); });
+  if (!soloObs) L.push({ t: 'Regreso, aterrizaje, «¡LIBRE!» y apagado', hecho: ['21', '22'].every(function (i) { return respK(S, f, i); }) });
+  return L;
+}
+/* ¿ya es el momento de mostrar el escenario? Antes, la pantalla de calificación no lo muestra (solo el resumen plegable). */
+function visibleEsc(S, f, slot) {
+  var a = asigDe(S, f, slot); if (!a || S.estado === 'final') return true;
+  if ((S.ev[f].vis || {})[slot]) return true;
+  if (respK(S, evaluadoDe(f, slot), itemEsc(S, slot).id)) return true;
+  var min = (Date.now() - S.inicio) / 60000;
+  if (a.momento === 'antes_del_vuelo') return true;
+  if (a.momento === 'cambio_de_bateria') return min >= faseMin(S, 'A', true) || ['21', '22'].every(function (i) { return respK(S, 'A', i); });
+  var L = pasosN(S, f), i = L.map(function (x) { return x.esc; }).indexOf(slot), previos = L.slice(0, Math.max(0, i)).every(function (x) { return x.hecho; });
+  if (individual(S) && f === 'B') return previos && min >= faseMin(S, 'B', false);
+  return previos || min >= faseMin(S, f, true);
+}
+function visKey(S) { return ahoraEsc(S).map(function (x) { return x.join('.'); }).join(',') + '|' + slotsDe(S).filter(function (x) { return visibleEsc(S, x[0], x[1]); }).map(function (x) { return x.join('.'); }).join(','); }
+function tabDeSlot(S, f, slot) { var a = asigDe(S, f, slot), m = a ? a.momento : 'en_vuelo'; return m === 'antes_del_vuelo' ? 'prep' : m === 'cambio_de_bateria' ? 'v2' : f === 'A' ? 'v1' : 'v2'; }
+/* escenarios que ya se pueden mostrar y aún no se califican («Ahora») */
+function ahoraEsc(S) { if (!nuevoModelo(S) || S.estado === 'final') return []; return slotsDe(S).filter(function (x) { var a = asigDe(S, x[0], x[1]); return a && visibleEsc(S, x[0], x[1]) && !respK(S, evaluadoDe(x[0], x[1]), itemEsc(S, x[1]).id); }); }
+function lineaRoles(S, f, slot) { var a = asigDe(S, f, slot); if (!a) return ''; return 'Mostrar a: ' + nombre1(nomK(S, a.quien)) + ' (' + a.mostrar + ') · Evalúa a: ' + nombre1(nomK(S, a.evaluado)) + ' como ' + a.rol; }
+function bloqueEsc(S, f, slot, n) {
+  var a = asigDe(S, f, slot), ev = evaluadoDe(f, slot);
+  return { id: 'esc-' + f + slot, titulo: (n ? n + '. ' : '') + 'Escenario: ' + nombre1(nomK(S, ev)) + ' como ' + slotRol(slot) + (a ? ' · ' + momTxt(a.momento).toLowerCase() : ''), filas: [[ev, itemEsc(S, slot)]], esc: [f, slot] };
+}
+function resumenEscHtml(S) {
+  var X = slotsDe(S).map(function (x) { var a = asigDe(S, x[0], x[1]); if (!a) return '<li>Vuelo ' + (x[0] === 'A' ? 1 : 2) + ' · ' + esc(txtEsc(S, x[0], x[1])) + ': <b>sin escenario</b> (sortéalo en su bloque)</li>';
+    return '<li><b>' + esc(momTxt(a.momento)) + (a.momento === 'en_vuelo' ? ' ' + (x[0] === 'A' ? 1 : 2) : '') + ' · ' + esc(a.t.id + ' · ' + a.t.t) + '</b>' + (datoTxt(a.t) ? ' · dato: <b>' + esc(datoTxt(a.t)) + '</b>' : '') + (visibleEsc(S, x[0], x[1]) ? '' : ' <span class="tag pen">aún no</span>') + '<br>' + esc(lineaRoles(S, x[0], x[1])) + '<br><span class="sub">Situación:</span> ' + esc(txtEscT(a.t, 'situacion')) + '<br><span class="sub">Lo correcto:</span> ' + esc(txtEscT(a.t, 'espera')) + '</li>'; }).join('');
+  return '<details class="no-print" id="ev-res" style="margin-top:8px"><summary class="sub" style="cursor:pointer">Escenarios sorteados de la prueba (solo para ti, para prepararte)</summary><ul class="sub" style="padding-left:18px;margin:6px 0 0">' + X + '</ul>' +
+    '<p class="sub" style="margin:6px 0 0">' + ['A', 'B'].map(function (f, i) { var m = misionDe(S, i + 1); return 'Vuelo ' + (i + 1) + ': ' + (ordenVuelo(S, f) === 'mision' ? 'misión → destreza' : 'destreza → misión') + (m ? ' · misión «' + esc(m.t) + '» (' + esc(m.motivo) + ')' : ''); }).join('<br>') + '</p></details>';
+}
 /* ---------- Resumen estable por piloto para el informe único (esquema evop-resumen-3) ---------- */
 function iso(t) {
   if (!t) return null; var d = new Date(t), o = -d.getTimezoneOffset(), a = Math.abs(o);
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + (o < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
 }
-function fichaT(t) { return t ? { id: t.id, t: t.t, para: t.para, reporte_esperado: t.reporte_esperado || 'VOR' } : null; }
+function fichaT(t) { if (!t) return null; var o = { id: t.id, t: t.t, para: t.para, reporte_esperado: t.reporte_esperado || 'VOR' }; if (t.asig) { o.mostrado_a = t.asig.mostrar; o.momento = t.asig.momento; o.responde = modeloT(t).responde; if (t.asig.dir) { o.direccion = t.asig.dir; o.dato_sorteado = datoTxt(t); } } return o; }
+/* OP-16: misión trampa de cada vuelo y su resultado (los dos ganan si uno la detecta) */
+function misionesRes(S) { if (!nuevoModelo(S)) return null; return [1, 2].map(function (n) { var m = misionDe(S, n), id = idTrampa(S, n), e = ((S.ev.A.items[id] || {}).e) || '', q = ((S.mision || {})[n] || {}).quien || null; return m ? { vuelo: n, id: m.id, t: m.t, leer: m.leer, motivo: m.motivo, resultado: e === 'c' ? 'detectada' : e === 'n' ? 'no_detectada' : e === 'na' ? 'no_aplica' : null, detecto: e === 'c' ? q : null } : null; }).filter(Boolean); }
+function misionTxt(x) { return 'Misión trampa del vuelo ' + x.vuelo + ': «' + x.t + '» (' + x.motivo + ') – ' + (x.resultado === 'detectada' ? 'la detectaron y no la ejecutaron' + (x.detecto ? ' (la detectó: ' + x.detecto + ')' : '') : x.resultado === 'no_detectada' ? 'no la detectaron (intentaron hacerla)' : x.resultado === 'no_aplica' ? 'no aplica' : 'sin calificar'); }
 function cambiosJSON(S) { return (S.cambios || []).map(function (c) { return { hora: iso(c.hora), sale: c.sale, rol_sale: c.rol, entra: c.entra || null, entra_como: c.como, modo_antes: c.antes, modo_despues: c.despues, registro_retirado: c.registro || null, respuestas_del_que_sale: c.n || 0 }; }); }
 function resumen(S) {
   if (retirado(S)) return [];
@@ -381,15 +591,310 @@ function resumen(S) {
       version_app: S.version_app || (S.plantilla === 'OP-8' ? 'EVAL-OP 8' : null),
       puntaje: r.pts, nota_minima: r.nota, aprobado_operacional: r.aprobado,
       criticas_incumplidas: r.crit.map(function (x) { return { id: x.id, t: x.t }; }),
-      destreza: !e.des ? null : act ? { pts: d.pts, max: d.max, miradas: d.mir, puntos: d.completa ? d.puntos : null, puntos_max: D.valor } : { pts: d.pts, max: d.max, miradas: d.mir, intervencion: !!d.inter, aprobada: d.ok },
+      destreza: !e.des ? null : desN(e.des) ? { pts: d.pts, max: d.max, miradas: d.mir, segundos: segundosDe(S), penalizaciones: e.des.pen.map(function (p) { return { maniobra: p.i + 1, motivo: p.m }; }), comandos: e.des.ord.map(function (o, i) { return { orden: o, marca: e.des.k[i], correcciones: e.des.cor[i] || 0, penalizaciones: penDe(e.des, i).map(function (p) { return p.m; }), puntos: ptsCmd(e.des, i) }; }), puntos: d.completa ? d.puntos : null, puntos_max: D.valor }
+        : act ? { pts: d.pts, max: d.max, miradas: d.mir, puntos: d.completa ? d.puntos : null, puntos_max: D.valor } : { pts: d.pts, max: d.max, miradas: d.mir, intervencion: !!d.inter, aprobada: d.ok },
       contingencia: fichaT(tarjetaDe(S, k, 'tp')), contingencia_observador: fichaT(tarjetaDe(S, otro(k), 'to')),
       reporte: { esperado: esp },
+      misiones: misionesRes(S), orden_bloques: nuevoModelo(S) ? { vuelo1: ordenVuelo(S, 'A'), vuelo2: ordenVuelo(S, 'B') } : null,
       preguntas: r.preguntas, perdidos: r.perdidos, observaciones: e.obs || '' };
     if (!act) { o.obst = S.obst === '' || S.obst == null ? null : +S.obst; o.rth = e.rth === '' || e.rth == null ? null : +e.rth; }
     /* OP-14 (opcional): historial de cambios de integrante de la sesión */
     if ((S.cambios || []).length) o.cambios_integrantes = cambiosJSON(S);
     return o;
   });
+}
+
+/* ---------- EVAL-OP 15: Administración (con PIN) ----------
+   Config en localStorage 'evop:admin' (solo este celular): { pin: {alg, sal, iter, hash}, maniobras, minutos, esc: {sorteo, ocultos, editados, creados, sig} }.
+   El PIN nunca está en el código (el repo es público): Juan lo crea la primera vez y se guarda como hash SHA-256 iterado con sal aleatoria.
+   Escenarios: los de la plantilla (P.tarjetas) se pueden editar (esc.editados[id]), sacar o meter al sorteo (esc.sorteo[id]) u ocultar (esc.ocultos);
+   nunca se borran. Los creados por Juan (esc.creados, id N01, N02…, nunca se reutiliza un id) sí se borran. Cada sesión guarda copia completa
+   de la tarjeta que se le asigna (S.ev[f].tarjeta / tarjetaObs), así que editar o borrar después no altera evaluaciones ni informes. */
+var ADM_KEY = 'evop:admin', ADMIN_OK = false, PIN_FALLOS = 0, PIN_BLOQ = 0, MIN_SORTEO = 2, PIN_ITER = 4000;
+var MINR = P.minutos_rango || { minimo: 30, maximo: 120 };
+var CLASES = ['ejecutable en vuelo', 'ejecutable en tierra', 'solo verbal'];
+var TIEMPOS = (function () { var o = { bajo: 0, medio: 1, alto: 2 }, L = []; P.tarjetas.forEach(function (t) { if (t.tiempo && L.indexOf(t.tiempo) < 0) L.push(t.tiempo); }); return L.sort(function (a, b) { var x = o[nivel({ tiempo: a })], y = o[nivel({ tiempo: b })]; return (x == null ? 9 : x) - (y == null ? 9 : y); }); })();
+var REPORTES = [['VOR', 'VOR'], ['MOR+VOR', 'MOR y VOR']];
+function admin() { try { var a = JSON.parse(localStorage.getItem(ADM_KEY)); return a && typeof a === 'object' ? a : {}; } catch (e) { return {}; } }
+function guardarAdmin(a) { a.actualizado = Date.now(); try { localStorage.setItem(ADM_KEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
+function rango(v, mn, mx, def) { var n = parseInt(v, 10); return isNaN(n) ? def : Math.max(mn, Math.min(mx, n)); }
+function minutosAdm() { return rango(admin().minutos, MINR.minimo, MINR.maximo, P.minutos); }
+/* cronograma de la plantilla (50 min) escalado al tiempo total; la última fase termina justo en m */
+function escalarCrono(m) { var k = m / P.minutos, n = P.cronograma.length; return P.cronograma.map(function (f, i) { return Object.assign({}, f, { de: Math.round(f.de * k), a: i === n - 1 ? m : Math.round(f.a * k) }); }); }
+function cronoDe(S) { return S && S.cronograma && S.cronograma.length ? S.cronograma : escalarCrono((S && S.minutos) || P.minutos); }
+function minVuelo(C) { var f = (C || P.cronograma).filter(function (x) { return /^Vuelo 1/.test(x.t); })[0]; return f ? f.a - f.de : ''; }
+function avisoEmpezar(m) { return 'Explica la prueba y resuelve dudas ANTES de tocar Empezar; el reloj de ' + (m || minutosAdm()) + ' minutos arranca al tocarlo.'; }
+function cfgEsc(a) { var c = (a || admin()).esc; return c && typeof c === 'object' ? c : {}; }
+/* catálogo vigente de escenarios: plantilla con ediciones + creados; sin los ocultos salvo que se pidan */
+function escenarios(conOcultos, a) {
+  var c = cfgEsc(a), ed = c.editados || {}, so = c.sorteo || {}, oc = c.ocultos || [], L = [];
+  P.tarjetas.forEach(function (t) { var x = Object.assign({}, t, ed[t.id] || {}); x.id = t.id; if (so[t.id] != null) x.en_sorteo = !!so[t.id]; x._origen = 'plantilla'; x._editado = !!ed[t.id]; x._oculto = oc.indexOf(t.id) >= 0; L.push(x); });
+  (c.creados || []).forEach(function (t) { var x = Object.assign({}, t); if (so[t.id] != null) x.en_sorteo = !!so[t.id]; x._origen = 'admin'; L.push(x); });
+  return conOcultos ? L : L.filter(function (x) { return !x._oculto; });
+}
+/* copia que se guarda en la sesión: sin campos internos (_…); marca si fue creada o editada en Administración */
+function copiaT(t) { if (!t) return null; var o = {}; Object.keys(t).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = t[k]; }); if (t._origen === 'admin') o.origen = 'administracion'; if (t._editado) o.editado = true; return JSON.parse(JSON.stringify(o)); }
+/* OP-16: se puede sortear si evalúa a algún rol y tiene un momento válido en algún vuelo (antes del vuelo y cambio de batería solo si el ejercicio continúa) */
+function puedeSortear(t) { return rolesEval(t).length > 0 && (momentosValidos(t, 'A').length > 0 || momentosValidos(t, 'B').length > 0); }
+function motivoNo(t) { if (puedeSortear(t)) return ''; return !modeloT(t).momento.length ? 'no tiene momento' : 'antes del vuelo o en el cambio de batería solo se sortea si el ejercicio continúa'; }
+function cuentaSorteo(L) { var n = function (rol) { return L.filter(function (t) { return t.en_sorteo !== false && puedeSortear(t) && rolesEval(t).indexOf(rol) >= 0; }).length; }; return { tp: n('piloto'), to: n('observador') }; }
+/* OP-16: no deja guardar si con los escenarios activos no se pueden cubrir los 4 casos de una prueba en pareja
+   (A piloto y B observador en el vuelo 1 —antes del vuelo o en vuelo—, B piloto y A observador en el vuelo 2 —en vuelo o en el cambio de batería—),
+   sin repetir escenario ni familia, con a lo sumo uno en tierra y uno que requiera aterrizar por vuelo */
+function faltaSorteo(a) {
+  var cat = escenarios(false, a).filter(function (t) { return t.en_sorteo !== false && puedeSortear(t); }), n = cuentaSorteo(cat), F = [];
+  if (n.tp < MIN_SORTEO) F.push('que evalúen al piloto (quedarían ' + n.tp + ')');
+  if (n.to < MIN_SORTEO) F.push('que evalúen al observador (quedarían ' + n.to + ')');
+  var Sx = { id: '_val', modo: 'pareja', A: 'A', B: 'B', ev: { A: { items: {} }, B: { items: {} } } }, falt = [];
+  [['A', 'tp', 'vuelo 1, piloto (antes del vuelo o en vuelo)'], ['A', 'to', 'vuelo 1, observador (antes del vuelo o en vuelo)'], ['B', 'tp', 'vuelo 2, piloto (en vuelo o en el cambio de batería)'], ['B', 'to', 'vuelo 2, observador (en vuelo o en el cambio de batería)']]
+    .forEach(function (x) { if (!cat.some(function (t) { return sirve(t, x[0], x[1]); })) falt.push(x[2]); });
+  if (falt.length) F.push('para ' + falt.join('; '));
+  if (!F.length && !resolver(Sx, slotsDe(Sx), {}, cat, {}, null, [])) F.push('que permitan armar los 4 casos sin repetir familia, con a lo sumo uno en tierra y uno que requiera aterrizar en cada vuelo (activa escenarios en vuelo que continúen)');
+  return F.length ? 'Para sortear una prueba en pareja se necesitan al menos ' + MIN_SORTEO + ' escenarios activos que evalúen al piloto y ' + MIN_SORTEO + ' que evalúen al observador, y que alcancen para los 4 casos (A piloto, B observador, B piloto, A observador) en sus momentos. Faltan escenarios ' + F.join(' · ') + '.' : '';
+}
+/* SHA-256 en JavaScript (sirve también en la vista previa abierta como archivo, sin crypto.subtle) */
+var SHA_K = (function () { var K = [], H = [], n = 2, j = 0, pr = function (x) { for (var f = 2; f * f <= x; f++) if (x % f === 0) return false; return true; }, fr = function (x) { return (x - Math.floor(x)) * 4294967296 | 0; }; while (j < 64) { if (pr(n)) { if (j < 8) H[j] = fr(Math.pow(n, 1 / 2)); K[j++] = fr(Math.pow(n, 1 / 3)); } n++; } return { K: K, H: H }; })();
+function sha256(str) {
+  var b = new TextEncoder().encode(str), l = b.length, w = [], W = [], H = SHA_K.H.slice(), K = SHA_K.K, i, j;
+  for (i = 0; i < l; i++) w[i >> 2] |= b[i] << (24 - (i % 4) * 8);
+  w[l >> 2] |= 0x80 << (24 - (l % 4) * 8); w[((l + 8) >> 6 << 4) + 15] = l * 8;
+  for (i = 0; i < w.length; i += 16) {
+    var a = H.slice();
+    for (j = 0; j < 64; j++) {
+      if (j < 16) W[j] = w[i + j] | 0;
+      else { var x = W[j - 15], y = W[j - 2]; W[j] = (((x >>> 7 | x << 25) ^ (x >>> 18 | x << 14) ^ (x >>> 3)) + W[j - 7] + ((y >>> 17 | y << 15) ^ (y >>> 19 | y << 13) ^ (y >>> 10)) + W[j - 16]) | 0; }
+      var e = a[4], t1 = a[7] + ((e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7)) + ((e & a[5]) ^ (~e & a[6])) + K[j] + W[j], z = a[0];
+      var t2 = ((z >>> 2 | z << 30) ^ (z >>> 13 | z << 19) ^ (z >>> 22 | z << 10)) + ((z & a[1]) ^ (z & a[2]) ^ (a[1] & a[2]));
+      a = [(t1 + t2) | 0].concat(a); a[4] = (a[4] + t1) | 0; a.pop();
+    }
+    for (j = 0; j < 8; j++) H[j] = (H[j] + a[j]) | 0;
+  }
+  return H.map(function (h) { return ('00000000' + (h >>> 0).toString(16)).slice(-8); }).join('');
+}
+function nuevaSal() { var b = new Uint8Array(16); try { crypto.getRandomValues(b); } catch (e) { for (var i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256); } return Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+function hashPin(pin, sal, iter) { var h = sha256(sal + ':' + pin); for (var i = 0; i < iter; i++) h = sha256(h + ':' + sal); return h; }
+function pinOk(pin) { var p = admin().pin; return !!(p && p.hash && hashPin(pin, p.sal, p.iter || PIN_ITER) === p.hash); }
+function avisoM(t, h, fn) { modal('<h2>' + t + '</h2>' + (h ? '<p>' + h + '</p>' : '') + '<div class="acciones"><button class="btn pri" id="m-no">Cerrar</button></div>'); $('#m-no').focus(); $('#m-no').onclick = function () { cerrar(); if (fn) fn(); }; }
+function enter(id, bt) { var i = $(id); if (i) i.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); $(bt).click(); } }; }
+function pantallaAdmin() {
+  $('#barra').style.display = 'none'; clearInterval(TICK);
+  var a = admin();
+  if (!a.pin || !a.pin.hash) return pinCrear(false);
+  if (!ADMIN_OK) return pinEntrar();
+  panelAdmin('');
+}
+function salirAdmin() { ADMIN_OK = false; inicio(); }
+function pinCrear(cambiar) {
+  app.innerHTML = '<div class="hoja"><h1>' + (cambiar ? 'Cambiar el PIN de administración' : 'Administración: crea tu PIN') + '</h1>' +
+    (cambiar ? '' : '<p>Es la primera vez en este celular. Crea el PIN de administración: <b>mínimo 4 dígitos</b>, solo números.</p>') +
+    '<p class="sub">El PIN se guarda cifrado (hash con sal) solo en este celular; no queda en el código de la app ni en GitHub. Si lo olvidas, puedes «restablecer la administración»: se borra solo la configuración de administración, nunca las evaluaciones.</p>' +
+    (cambiar ? '<label class="campo">PIN actual<input id="p-0" type="password" inputmode="numeric" autocomplete="off" maxlength="12"></label>' : '') +
+    '<label class="campo">PIN nuevo<input id="p-1" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12"></label>' +
+    '<label class="campo">Repite el PIN<input id="p-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12"></label>' +
+    '<div id="p-msg"></div><div class="acciones"><button class="btn pri" id="p-ok">' + (cambiar ? 'Cambiar PIN' : 'Crear PIN y entrar') + '</button><button class="btn" id="p-no">' + (cambiar ? 'Volver' : 'Cancelar') + '</button></div></div>';
+  window.scrollTo(0, 0); ($('#p-0') || $('#p-1')).focus(); enter('#p-2', '#p-ok');
+  $('#p-no').onclick = cambiar ? function () { panelAdmin(''); } : inicio;
+  $('#p-ok').onclick = function () {
+    var v1 = $('#p-1').value.trim(), v2 = $('#p-2').value.trim(), m = $('#p-msg');
+    if (cambiar && !pinOk($('#p-0').value.trim())) { m.innerHTML = '<div class="msg err">El PIN actual no es correcto.</div>'; return; }
+    if (!/^\d{4,12}$/.test(v1)) { m.innerHTML = '<div class="msg err">El PIN debe tener entre 4 y 12 dígitos, solo números.</div>'; return; }
+    if (v1 !== v2) { m.innerHTML = '<div class="msg err">Los dos PIN no coinciden.</div>'; return; }
+    var a = admin(), sal = nuevaSal(); a.pin = { alg: 'sha256-iter', sal: sal, iter: PIN_ITER, hash: hashPin(v1, sal, PIN_ITER), creado: Date.now() };
+    if (!guardarAdmin(a)) { m.innerHTML = '<div class="msg err">No se pudo guardar en este celular (almacenamiento lleno o bloqueado).</div>'; return; }
+    ADMIN_OK = true; panelAdmin(cambiar ? 'PIN cambiado.' : 'PIN creado. Ya estás en Administración.');
+  };
+}
+function pinEntrar() {
+  app.innerHTML = '<div class="hoja"><h1>Administración</h1><p class="sub">Ingresa el PIN de administración de este celular.</p>' +
+    '<label class="campo">PIN<input id="p-in" type="password" inputmode="numeric" autocomplete="off" maxlength="12"></label><div id="p-msg"></div>' +
+    '<div class="acciones"><button class="btn pri" id="p-ok">Entrar</button><button class="btn" id="p-no">Volver</button></div>' +
+    '<p class="sub" style="margin-top:16px">¿Olvidaste el PIN? <button class="btn-borrar" id="p-olv">Restablecer administración</button></p></div>';
+  $('#p-in').focus(); enter('#p-in', '#p-ok');
+  $('#p-no').onclick = inicio; $('#p-olv').onclick = restablecerAdmin;
+  $('#p-ok').onclick = function () {
+    var m = $('#p-msg'), espera = Math.ceil((PIN_BLOQ - Date.now()) / 1000);
+    if (espera > 0) { m.innerHTML = '<div class="msg err">Demasiados intentos. Espera ' + espera + ' s.</div>'; return; }
+    if (pinOk($('#p-in').value.trim())) { PIN_FALLOS = 0; ADMIN_OK = true; panelAdmin(''); return; }
+    PIN_FALLOS++; if (PIN_FALLOS >= 5) { PIN_FALLOS = 0; PIN_BLOQ = Date.now() + 30000; }
+    $('#p-in').value = ''; m.innerHTML = '<div class="msg err">PIN incorrecto.' + (PIN_BLOQ > Date.now() ? ' Espera 30 s para volver a intentar.' : '') + '</div>';
+  };
+}
+function restablecerAdmin() {
+  modal('<h2>¿Restablecer la administración?</h2><p>Se borra <b>solo la configuración de administración</b> de este celular: el PIN, las maniobras y el tiempo de la prueba (vuelven a ' + D.maniobras.defecto + ' maniobras y ' + P.minutos + ' min) y los cambios a los escenarios (creados, editados, ocultos y fuera del sorteo).</p>' +
+    '<p><b>Las evaluaciones no se tocan</b>, ni las en curso ni las cerradas: cada prueba guarda su propia copia del escenario, las maniobras y el reloj con que empezó. Si exportaste la configuración, la puedes volver a importar después.</p>' +
+    '<label class="campo">Para confirmar, escribe RESTABLECER<input id="m-conf" autocomplete="off" autocapitalize="characters"></label>' +
+    '<div class="acciones"><button class="btn pri" id="m-no">Cancelar</button><button class="btn peligro" id="m-si" disabled>Restablecer administración</button></div>');
+  $('#m-no').focus(); $('#m-no').onclick = cerrar;
+  $('#m-conf').oninput = function () { $('#m-si').disabled = this.value.trim().toUpperCase() !== 'RESTABLECER'; };
+  $('#m-si').onclick = function () {
+    if ($('#m-conf').value.trim().toUpperCase() !== 'RESTABLECER') return;
+    try { localStorage.removeItem(ADM_KEY); } catch (e) {}
+    ADMIN_OK = false; cerrar(); avisoM('Administración restablecida', 'Las evaluaciones del celular siguen intactas. Crea un PIN nuevo.', function () { pinCrear(false); });
+  };
+}
+function etiquetaEsc(t) {
+  var tags = [], ok = puedeSortear(t);
+  tags.push(!ok ? '<span class="tag pen" style="white-space:normal">No sorteable: ' + esc(motivoNo(t)) + '</span>' : t.en_sorteo !== false ? '<span class="tag ok">En el sorteo</span>' : '<span class="tag bor">Fuera del sorteo</span>');
+  if (t._origen === 'admin') tags.push('<span class="tag pen">Creado</span>'); else if (t._editado) tags.push('<span class="tag pen">Editado</span>');
+  if (t.marca && t._origen !== 'admin') tags.push('<span class="tag ' + (t.marca === 'juan' ? 'ok">Juan' : 'pen">Propuesta') + '</span>');
+  return tags.join(' ');
+}
+function rolesTxt(t) { var m = modeloT(t); return 'Mostrar a: ' + m.mostrar_a + ' · responde: ' + (m.responde === 'quien_lo_ve' ? 'quien lo ve' : m.responde) + ' · ' + (m.momento.map(momTxt).join(' o ').toLowerCase() || 'sin momento') + ' · ' + (requiereAterrizar(t) ? 'requiere aterrizar' : m.continua ? 'continúa' : 'no continúa'); }
+function filaEsc(t) {
+  var ok = puedeSortear(t);
+  return '<div class="sugerido" data-esc="' + esc(t.id) + '" style="cursor:default"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b><span>' + esc(rolesTxt(t)) + ' · reporte ' + repTxt(t.reporte_esperado) + '</span><div style="margin-top:4px">' + etiquetaEsc(t) + '</div>' +
+    '<div class="acciones" style="margin-top:6px">' + (t._oculto ? '<button class="btn chico" data-ae-mos="' + esc(t.id) + '">Mostrar de nuevo</button>' :
+      '<button class="btn chico" data-ae-ed="' + esc(t.id) + '">Editar</button>' + (ok ? '<button class="btn chico" data-ae-tog="' + esc(t.id) + '">' + (t.en_sorteo !== false ? 'Sacar del sorteo' : 'Meter al sorteo') + '</button>' : '') +
+      (t._editado ? '<button class="btn chico" data-ae-res="' + esc(t.id) + '">Restaurar original</button>' : '') +
+      '<button class="btn chico peligro" data-ae-del="' + esc(t.id) + '">' + (t._origen === 'admin' ? 'Eliminar' : 'Ocultar') + '</button>') + '</div></div>';
+}
+/* aplica un cambio sobre una copia de la config; si dejaría la prueba sin escenarios suficientes, no se guarda */
+function cambiarCfg(fn, okMsg) {
+  var a = admin(); a.esc = JSON.parse(JSON.stringify(cfgEsc(a))); fn(a.esc, a);
+  var f = faltaSorteo(a);
+  if (f) { avisoM('No se puede hacer ese cambio', esc(f)); return false; }
+  if (!guardarAdmin(a)) { avisoM('No se pudo guardar', 'El almacenamiento del celular no respondió. No se cambió nada.'); return false; }
+  panelAdmin(okMsg || ''); return true;
+}
+function panelAdmin(msg) {
+  if (!ADMIN_OK) return pantallaAdmin();
+  $('#barra').style.display = 'none'; clearInterval(TICK);
+  var a = admin(), L = escenarios(true, a), vis = L.filter(function (t) { return !t._oculto; }), ocu = L.filter(function (t) { return t._oculto; }), n = cuentaSorteo(vis), M = D.maniobras;
+  var cr = function (m) { return escalarCrono(m).map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join(''); };
+  app.innerHTML = '<div class="hoja"><h1>Administración</h1>' + (msg ? '<div class="msg ok" id="adm-msg">' + esc(msg) + '</div>' : '') +
+    '<p class="sub">Solo en este celular. Los cambios aplican a las pruebas nuevas: una prueba ya iniciada conserva sus maniobras, su reloj y las tarjetas que se le asignaron.</p>' +
+    '<div class="acciones"><button class="btn" id="ad-sal">Salir de administración</button></div></div>' +
+    '<div class="hoja"><h2>Prueba</h2><label class="campo">Maniobras de destreza por piloto (' + M.minimo + ' a ' + M.maximo + ')<input id="ad-man" type="number" inputmode="numeric" min="' + M.minimo + '" max="' + M.maximo + '" value="' + maniobrasAj() + '"></label>' +
+    '<label class="campo">Segundos por comando de destreza (' + SEGR.minimo + ' a ' + SEGR.maximo + '; si tarda más en todo el comando, penalización por demora)<input id="ad-seg" type="number" inputmode="numeric" min="' + SEGR.minimo + '" max="' + SEGR.maximo + '" value="' + segundosAdm() + '"></label>' +
+    '<label class="campo">Tiempo total de la prueba en minutos (' + MINR.minimo + ' a ' + MINR.maximo + ')<input id="ad-min" type="number" inputmode="numeric" min="' + MINR.minimo + '" max="' + MINR.maximo + '" value="' + minutosAdm() + '"></label>' +
+    '<p class="sub" style="margin:0">Cronograma escalado en proporción:</p><ul class="sub" id="ad-crono" style="margin-top:4px">' + cr(minutosAdm()) + '</ul>' +
+    '<div class="acciones"><button class="btn pri" id="ad-ok">Guardar maniobras, segundos y tiempo</button></div></div>' +
+    '<div class="hoja"><h2>Escenarios (tarjetas de contingencia)</h2><p class="sub">En el sorteo ahora: <b id="ad-ntp">' + n.tp + '</b> que evalúan al piloto y <b id="ad-nto">' + n.to + '</b> que evalúan al observador (mínimo ' + MIN_SORTEO + ' de cada uno, y que alcancen para los 4 casos de una prueba en pareja en sus momentos; si no, la app no deja guardar). Los de la plantilla se editan, se sacan del sorteo o se ocultan; los creados aquí también se pueden eliminar.</p>' +
+    '<div class="acciones"><button class="btn pri" id="ad-nuevo">Nuevo escenario</button></div>' +
+    [['piloto', 'Evalúan al piloto'], ['observador', 'Evalúan al observador'], ['ambos', 'Evalúan a quien lo ve (piloto u observador)']].map(function (g) { var X = vis.filter(function (t) { var r = rolesEval(t); return g[0] === 'ambos' ? r.length === 2 : r.length === 1 && r[0] === g[0]; }); return '<h2 style="font-size:15px;margin-top:14px">' + g[1] + ' (' + X.length + ')</h2>' + X.map(filaEsc).join(''); }).join('') +
+    (ocu.length ? '<h2 style="font-size:15px;margin-top:14px">Ocultos (' + ocu.length + ')</h2><p class="sub">No salen en el sorteo ni en «o elegir…».</p>' + ocu.map(filaEsc).join('') : '') + '</div>' +
+    '<div class="hoja"><h2>Configuración</h2><p class="sub">Exporta la configuración (maniobras, tiempo y escenarios) para guardarla o pasarla a otro celular. También va dentro del «Exportar respaldo» de cada día. El PIN no se exporta.</p>' +
+    '<div class="acciones"><button class="btn" id="ad-exp">Exportar configuración</button><label class="btn" style="display:inline-flex;align-items:center">Importar configuración<input type="file" id="ad-imp" accept=".json,application/json" hidden></label></div></div>' +
+    '<div class="hoja"><h2>PIN</h2><div class="acciones"><button class="btn" id="ad-pin">Cambiar PIN</button></div></div>';
+  $('#ad-sal').onclick = salirAdmin;
+  $('#ad-min').oninput = function () { var m = parseInt(this.value, 10); if (!isNaN(m) && m >= MINR.minimo && m <= MINR.maximo) $('#ad-crono').innerHTML = cr(m); };
+  $('#ad-ok').onclick = function () {
+    var mn = parseInt($('#ad-man').value, 10), mi = parseInt($('#ad-min').value, 10);
+    if (isNaN(mn) || mn < M.minimo || mn > M.maximo) return avisoM('Revisa las maniobras', 'Deben ser entre ' + M.minimo + ' y ' + M.maximo + '.');
+    if (isNaN(mi) || mi < MINR.minimo || mi > MINR.maximo) return avisoM('Revisa el tiempo', 'Debe ser entre ' + MINR.minimo + ' y ' + MINR.maximo + ' minutos.');
+    var pe = parseInt($('#ad-seg').value, 10);
+    if (isNaN(pe) || pe < SEGR.minimo || pe > SEGR.maximo) return avisoM('Revisa los segundos por comando', 'Deben ser entre ' + SEGR.minimo + ' y ' + SEGR.maximo + '.');
+    var a = admin(); a.maniobras = mn; a.minutos = mi; a.segundos = pe;
+    if (!guardarAdmin(a)) return avisoM('No se pudo guardar', 'El almacenamiento del celular no respondió.');
+    panelAdmin('Guardado: ' + mn + ' maniobras, ' + mi + ' minutos y ' + pe + ' s por comando para las pruebas nuevas.');
+  };
+  $('#ad-nuevo').onclick = function () { formEsc(null); };
+  $('#ad-pin').onclick = function () { pinCrear(true); };
+  $('#ad-exp').onclick = function () { compartir(new File([JSON.stringify(cfgExport(), null, 1)], 'configuracion_admin_evaluacion_' + hoy() + '.json', { type: 'application/json' })); };
+  $('#ad-imp').onchange = function () { importarCfg(this.files[0]); this.value = ''; };
+  var porId = function (id) { return L.filter(function (t) { return t.id === id; })[0]; };
+  Array.prototype.forEach.call(app.querySelectorAll('[data-ae-ed]'), function (b) { b.onclick = function () { formEsc(porId(b.getAttribute('data-ae-ed'))); }; });
+  Array.prototype.forEach.call(app.querySelectorAll('[data-ae-tog]'), function (b) { b.onclick = function () { var t = porId(b.getAttribute('data-ae-tog')), v = t.en_sorteo === false;
+    cambiarCfg(function (c) { if (t._origen === 'admin') { (c.creados || []).forEach(function (x) { if (x.id === t.id) x.en_sorteo = v; }); if (c.sorteo) delete c.sorteo[t.id]; } else { c.sorteo = c.sorteo || {}; c.sorteo[t.id] = v; } }, t.id + (v ? ' entra al sorteo.' : ' sale del sorteo.')); }; });
+  Array.prototype.forEach.call(app.querySelectorAll('[data-ae-res]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-ae-res'); cambiarCfg(function (c) { if (c.editados) delete c.editados[id]; }, id + ' quedó como en la plantilla.'); }; });
+  Array.prototype.forEach.call(app.querySelectorAll('[data-ae-mos]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-ae-mos'); cambiarCfg(function (c) { c.ocultos = (c.ocultos || []).filter(function (x) { return x !== id; }); }, id + ' se muestra de nuevo.'); }; });
+  Array.prototype.forEach.call(app.querySelectorAll('[data-ae-del]'), function (b) { b.onclick = function () { borrarEsc(porId(b.getAttribute('data-ae-del'))); }; });
+}
+function borrarEsc(t) {
+  var propio = t._origen === 'admin';
+  modal('<h2>' + (propio ? '¿Eliminar el escenario?' : '¿Ocultar el escenario de la plantilla?') + '</h2><p><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> (' + esc(t.para) + ')</p>' +
+    '<p>' + (propio ? 'Se borra de la configuración de este celular y no se puede recuperar (salvo que lo tengas en una configuración exportada).' : 'Los escenarios de la plantilla no se borran: queda oculto, sale del sorteo y de «o elegir…». Lo puedes mostrar de nuevo en «Ocultos».') + '</p>' +
+    '<p class="sub">Las pruebas que ya lo usaron conservan su copia: no cambian ni sus evaluaciones ni sus informes.</p>' +
+    '<div class="acciones"><button class="btn pri" id="m-no">Cancelar</button><button class="btn peligro" id="m-si">' + (propio ? 'Eliminar' : 'Ocultar') + '</button></div>');
+  $('#m-no').focus(); $('#m-no').onclick = cerrar;
+  $('#m-si').onclick = function () { cerrar(); cambiarCfg(function (c) {
+    if (propio) { c.creados = (c.creados || []).filter(function (x) { return x.id !== t.id; }); if (c.sorteo) delete c.sorteo[t.id]; }
+    else { c.ocultos = (c.ocultos || []).concat([t.id]).filter(function (x, i, A) { return A.indexOf(x) === i; }); }
+  }, t.id + (propio ? ' eliminado.' : ' oculto.')); };
+}
+function familiasTodas() { var F = []; escenarios(true).forEach(function (t) { (t.familias || []).forEach(function (x) { if (F.indexOf(x) < 0) F.push(x); }); }); return F.sort(); }
+/* formulario de escenario: t = escenario existente (plantilla o creado) o null para uno nuevo */
+function formEsc(t) {
+  var nuevo = !t, x = t || { t: '', para: 'piloto', mostrar_a: 'piloto', responde: 'piloto', momento: ['en_vuelo'], continua: true, requiere_aterrizar: false, situacion: '', espera: '', reporte: '', reporte_esperado: 'VOR', familias: [], en_sorteo: true };
+  var mx = modeloT(x), ra = requiereAterrizar(x);
+  var rep = x.reporte_esperado === 'VOR' ? 'VOR' : 'MOR+VOR', sel = function (id, L, v) { return '<select id="' + id + '">' + L.map(function (o) { o = Array.isArray(o) ? o : [o, o]; return '<option value="' + esc(o[0]) + '"' + (o[0] === v ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; };
+  app.innerHTML = '<div class="hoja"><h1>' + (nuevo ? 'Nuevo escenario' : 'Editar ' + esc(x.id)) + '</h1>' +
+    (!nuevo && x._origen === 'plantilla' ? '<p class="sub">Escenario de la plantilla: tus cambios quedan aparte y puedes volver al original con «Restaurar original».</p>' : '') +
+    '<label class="campo">Título<input id="e-t" maxlength="80" value="' + esc(x.t) + '"></label>' +
+    '<label class="campo">Mostrar a (a quién se le enseña la tarjeta)' + sel('e-mostrar', MOSTRAR_OP, mx.mostrar_a) + '</label>' +
+    '<label class="campo">Responde (a quién se evalúa)' + sel('e-resp', RESPONDE_OP, mx.responde) + '</label>' +
+    '<div class="campo">Momento (uno o más)<div>' + MOMENTOS.map(function (m) { return '<label class="amb" style="margin:4px 0"><input type="checkbox" data-mom="' + m[0] + '"' + (mx.momento.indexOf(m[0]) >= 0 ? ' checked' : '') + '> ' + m[1] + (m[0] === 'antes_del_vuelo' ? ' (vuelo 1)' : m[0] === 'cambio_de_bateria' ? ' (entre el vuelo 1 y el 2, con los roles del vuelo 2)' : '') + '</label>'; }).join('') + '</div></div>' +
+    '<label class="amb" style="margin:0 0 6px"><input type="checkbox" id="e-cont"' + (mx.continua ? ' checked' : '') + '> Continúa: después del escenario el ejercicio sigue (solucionable)</label>' +
+    '<label class="amb" style="margin:0 0 10px"><input type="checkbox" id="e-ater"' + (ra ? ' checked' : '') + '> Requiere aterrizar (o termina el vuelo): va de último, después de la destreza y la misión</label>' +
+    '<label class="campo">Situación (lo que se le muestra a pantalla completa)<textarea id="e-sit" rows="3">' + esc(x.situacion) + '</textarea></label>' +
+    '<label class="campo">Lo correcto (criterios para calificar)<textarea id="e-esp" rows="4">' + esc(x.espera) + '</textarea></label>' +
+    '<label class="campo">Reporte que le corresponde (todo escenario requiere al menos VOR)' + sel('e-rep', REPORTES, rep) + '</label>' +
+    (x.reporte_esperado === 'MOR' ? '<div class="msg info">La plantilla decía «MOR». Como todo escenario requiere al menos VOR, al guardar queda «MOR y VOR».</div>' : '') +
+    '<label class="campo">Texto del reporte en el escenario (opcional)<input id="e-reptx" value="' + esc(x.reporte || '') + '" placeholder="Ej.: VOR (MOR si hay pérdida de control)"></label>' +
+    '<label class="campo">Familias (separadas por coma; el sorteo nunca pone en una prueba dos escenarios de la misma familia)<input id="e-fam" list="e-fams" value="' + esc((x.familias || []).join(', ')) + '"><datalist id="e-fams">' + familiasTodas().map(function (f) { return '<option value="' + esc(f) + '">'; }).join('') + '</datalist></label>' +
+    '<label class="amb" style="margin:0 0 10px"><input type="checkbox" id="e-sorteo"' + (x.en_sorteo !== false ? ' checked' : '') + '> Activo en el sorteo</label>' +
+    '<div id="e-hint"></div><div id="e-msg"></div>' +
+    '<div class="acciones"><button class="btn pri" id="e-ok">' + (nuevo ? 'Crear escenario' : 'Guardar cambios') + '</button><button class="btn" id="e-no">Cancelar</button></div></div>';
+  window.scrollTo(0, 0);
+  var leer = function () { var mo = MOMENTOS.map(function (m) { return m[0]; }).filter(function (m) { return $('[data-mom="' + m + '"]').checked; }), mos = $('#e-mostrar').value, res = $('#e-resp').value, co = $('#e-cont').checked, at = $('#e-ater').checked && mo.indexOf('en_vuelo') >= 0;
+    return { t: $('#e-t').value.trim().replace(/\s+/g, ' '), para: res !== 'quien_lo_ve' ? res : mos === 'observador' ? 'observador' : 'piloto', mostrar_a: mos, responde: res, momento: mo, continua: co, requiere_aterrizar: at,
+    situacion: $('#e-sit').value.trim(), espera: $('#e-esp').value.trim(), reporte: $('#e-reptx').value.trim() || repTxt($('#e-rep').value), reporte_esperado: $('#e-rep').value,
+    clase: mo.indexOf('en_vuelo') >= 0 ? 'ejecutable en vuelo' : 'ejecutable en tierra', tiempo: mo.indexOf('en_vuelo') < 0 ? 'no aplica: no es tarjeta de vuelo' : at || !co ? 'medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez' : 'bajo: se resuelve en el aire y el vuelo sigue', familias: $('#e-fam').value.split(',').map(function (f) { return f.trim().replace(/\s+/g, ' '); }).filter(Boolean).filter(function (f, i, A) { return A.indexOf(f) === i; }), en_sorteo: $('#e-sorteo').checked }; };
+  var hint = function () { var y = leer(), m = motivoNo(y), r = rolesEval(y); $('#e-hint').innerHTML = '<div class="msg ' + (m ? 'info">No entra al sorteo: ' + esc(m) + '. Solo se puede elegir a mano con «o elegir…».' : y.en_sorteo ? 'ok">Entra al sorteo: evalúa al ' + esc(r.join(' o al ')) + (y.responde === 'quien_lo_ve' ? ' (al que lo ve)' : y.mostrar_a !== 'cualquiera' && y.mostrar_a !== y.responde ? ' (se le muestra al ' + esc(y.mostrar_a) + ')' : '') + ' · ' + esc(y.momento.map(momTxt).join(' o ').toLowerCase()) + (y.requiere_aterrizar ? ' · va de último en el vuelo' : '') + '.' : 'info">Queda fuera del sorteo (desactivado).') + '</div>'; };
+  Array.prototype.forEach.call(app.querySelectorAll('#e-mostrar, #e-resp, #e-cont, #e-ater, #e-sorteo, [data-mom]'), function (el) { el.onchange = hint; }); hint();
+  $('#e-no').onclick = function () { panelAdmin(''); window.scrollTo(0, 0); };
+  $('#e-ok').onclick = function () {
+    var y = leer(), F = [];
+    if (!y.t) F.push('el título'); if (!y.situacion) F.push('la situación'); if (!y.espera) F.push('lo correcto (criterios)'); if (!y.momento.length) F.push('el momento (al menos uno)');
+    if (F.length) { $('#e-msg').innerHTML = '<div class="msg err">Falta ' + F.join(', ') + '.</div>'; return; }
+    if (REPORTES.map(function (r) { return r[0]; }).indexOf(y.reporte_esperado) < 0) y.reporte_esperado = 'VOR';
+    var id = nuevo ? '' : x.id;
+    cambiarCfg(function (c, a) {
+      if (nuevo) { var usados = escenarios(true, a).map(function (z) { return z.id; }).concat((P.tarjetas_op8 || []).map(function (z) { return z.id; })), k = c.sig || 1; while (usados.indexOf('N' + pad(k)) >= 0) k++; id = 'N' + pad(k); c.sig = k + 1; y.id = id; c.creados = (c.creados || []).concat([y]); }
+      else if (x._origen === 'admin') { y.id = id; c.creados = (c.creados || []).map(function (z) { return z.id === id ? y : z; }); if (c.sorteo) delete c.sorteo[id]; }
+      else { var en = y.en_sorteo; delete y.en_sorteo; c.editados = c.editados || {}; c.editados[id] = y; c.sorteo = c.sorteo || {}; c.sorteo[id] = en; }
+    }, nuevo ? 'Escenario creado.' : 'Cambios guardados.') && (function () { var m = $('#adm-msg'); if (m) m.textContent = (nuevo ? 'Escenario ' + id + ' creado.' : 'Cambios de ' + id + ' guardados.'); window.scrollTo(0, 0); })();
+  };
+}
+/* configuración exportable (sin PIN); va también dentro del respaldo (campo admin) */
+function cfgExport() { var a = admin(); return { app: 'evop3', tipo: 'evop-admin-1', version: VERSION, plantilla: P.version, exportado: Date.now(), config: { maniobras: a.maniobras != null ? maniobrasAj() : null, minutos: a.minutos != null ? minutosAdm() : null, segundos: a.segundos != null ? segundosAdm() : null, esc: cfgEsc(a) } }; }
+function limpiarEsc(o) {
+  if (!o || typeof o !== 'object') return null; var s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
+  var y = { t: s(o.t), para: o.para === 'observador' ? 'observador' : o.para === 'piloto' ? 'piloto' : '', situacion: s(o.situacion), espera: s(o.espera), reporte: s(o.reporte), reporte_esperado: o.reporte_esperado === 'VOR' ? 'VOR' : 'MOR+VOR',
+    clase: CLASES.indexOf(o.clase) >= 0 ? o.clase : 'ejecutable en vuelo', tiempo: s(o.tiempo) || TIEMPOS[0], familias: Array.isArray(o.familias) ? o.familias.filter(function (f) { return typeof f === 'string' && f.trim(); }).map(function (f) { return f.trim(); }) : [], en_sorteo: o.en_sorteo !== false };
+  var m = modeloT(o); y.mostrar_a = m.mostrar_a; y.responde = m.responde; y.momento = m.momento; y.continua = m.continua; y.requiere_aterrizar = requiereAterrizar(o) && m.momento.indexOf('en_vuelo') >= 0;
+  if (!y.para) y.para = m.responde !== 'quien_lo_ve' ? m.responde : m.mostrar_a === 'observador' ? 'observador' : 'piloto';
+  return y.t && y.para && y.situacion && y.espera ? y : null;
+}
+function leerCfg(d) {
+  var c = d && d.tipo === 'evop-admin-1' ? d : d && d.admin && d.admin.tipo === 'evop-admin-1' ? d.admin : null;
+  if (!c || !c.config || typeof c.config !== 'object') return null;
+  var k = c.config, e = k.esc && typeof k.esc === 'object' ? k.esc : {}, ids = P.tarjetas.map(function (t) { return t.id; }), out = { sorteo: {}, ocultos: [], editados: {}, creados: [], sig: 1 }, M = D.maniobras, vistos = [];
+  Object.keys(e.sorteo || {}).forEach(function (id) { out.sorteo[id] = !!e.sorteo[id]; });
+  (Array.isArray(e.ocultos) ? e.ocultos : []).forEach(function (id) { if (ids.indexOf(id) >= 0 && out.ocultos.indexOf(id) < 0) out.ocultos.push(id); });
+  Object.keys(e.editados || {}).forEach(function (id) { var y = ids.indexOf(id) >= 0 && limpiarEsc(Object.assign({ en_sorteo: true }, e.editados[id])); if (y) { delete y.en_sorteo; out.editados[id] = y; } });
+  (Array.isArray(e.creados) ? e.creados : []).forEach(function (o) { var y = limpiarEsc(o), id = o && typeof o.id === 'string' ? o.id.trim() : ''; if (y && /^N\d{2,}$/.test(id) && vistos.indexOf(id) < 0) { vistos.push(id); y.id = id; out.creados.push(y); } });
+  out.sig = Math.max(parseInt(e.sig, 10) || 1, 1 + Math.max.apply(null, [0].concat(vistos.map(function (id) { return parseInt(id.slice(1), 10); }))));
+  return { segundos: k.segundos == null ? null : rango(k.segundos, SEGR.minimo, SEGR.maximo, D.segundos), maniobras: k.maniobras == null ? null : rango(k.maniobras, M.minimo, M.maximo, M.defecto), minutos: k.minutos == null ? null : rango(k.minutos, MINR.minimo, MINR.maximo, P.minutos), esc: out, version: c.version || '', exportado: c.exportado };
+}
+function importarCfg(f) {
+  if (!f) return;
+  var fr = new FileReader();
+  fr.onload = function () {
+    var d; try { d = JSON.parse(fr.result); } catch (e) { d = null; }
+    var c = leerCfg(d);
+    if (!c) return avisoM('Archivo no válido', 'No es una configuración de administración de esta app (ni un respaldo que la traiga).');
+    var e = c.esc, nuevo = admin(); nuevo.esc = e; if (c.maniobras != null) nuevo.maniobras = c.maniobras; else delete nuevo.maniobras; if (c.minutos != null) nuevo.minutos = c.minutos; else delete nuevo.minutos; if (c.segundos != null) nuevo.segundos = c.segundos; else delete nuevo.segundos;
+    var falta = faltaSorteo(nuevo);
+    modal('<h2>¿Importar esta configuración?</h2><p class="sub">' + esc(f.name) + (c.version ? ' · ' + esc(c.version) : '') + (c.exportado ? ' · exportada ' + fmt(c.exportado) : '') + '</p><ul style="padding-left:18px">' +
+      '<li>Maniobras: <b>' + (c.maniobras != null ? c.maniobras : 'por defecto (' + D.maniobras.defecto + ')') + '</b> · tiempo: <b>' + (c.minutos != null ? c.minutos : P.minutos) + ' min</b></li>' +
+      '<li>Escenarios creados: <b>' + e.creados.length + '</b> · editados: <b>' + Object.keys(e.editados).length + '</b> · ocultos: <b>' + e.ocultos.length + '</b> · cambios de sorteo: <b>' + Object.keys(e.sorteo).length + '</b></li></ul>' +
+      '<p>Reemplaza la configuración de administración de este celular. El PIN de este celular no cambia y las evaluaciones no se tocan.</p>' + (falta ? '<div class="msg err">' + esc(falta) + ' No se puede importar.</div>' : '') +
+      '<div class="acciones"><button class="btn pri" id="m-no">Cancelar</button>' + (falta ? '' : '<button class="btn" id="m-si">Importar configuración</button>') + '</div>');
+    $('#m-no').focus(); $('#m-no').onclick = cerrar;
+    if ($('#m-si')) $('#m-si').onclick = function () { cerrar(); if (!guardarAdmin(nuevo)) return avisoM('No se pudo guardar', 'El almacenamiento del celular no respondió.'); panelAdmin('Configuración importada.'); };
+  };
+  fr.readAsText(f);
 }
 
 /* ---------- Inicio ---------- */
@@ -401,7 +906,7 @@ function inicio() {
     app.innerHTML = (a.evaluador ? '' : '<div class="msg info">Antes de empezar, escribe tu nombre en Ajustes: sale en los informes.</div>') +
       '<div class="hoja"><h1>Pruebas operacionales</h1><p class="sub">Evaluador: <b>' + esc(a.evaluador || 'sin definir') + '</b> · nota mínima ' + notaMin() + ' · ' + L.length + ' sesión' + (L.length === 1 ? '' : 'es') + ' en este celular</p>' +
       '<div class="acciones"><button class="btn pri" id="b-nueva">Nueva prueba (pareja)</button><button class="btn" id="b-exp">Exportar respaldo</button><button class="btn" id="b-csv">Resumen (CSV)</button>' +
-      '<label class="btn" style="display:inline-flex;align-items:center">Importar<input type="file" id="b-imp" accept=".json,application/json" hidden></label><button class="btn" id="b-guia">Guía de la prueba</button><button class="btn" id="b-aj">Ajustes</button></div></div>' +
+      '<label class="btn" style="display:inline-flex;align-items:center">Importar<input type="file" id="b-imp" accept=".json,application/json" hidden></label><button class="btn" id="b-guia">Guía de la prueba</button><button class="btn" id="b-aj">Ajustes</button><button class="btn" id="b-adm">Administración</button></div></div>' +
       '<div class="lista">' + (L.length ? L.map(function (S) {
         if (retirado(S)) { var R = S.retirado || {}; return '<div class="fila-ev"><button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(R.nombre) + ' (se retiró' + (R.companero ? '; estaba con ' + esc(R.companero) : '') + ')</b><span>' + fmt(S.inicio) + ' · salió ' + fmt(R.hora).slice(11) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span><span class="tag pen">Incompleta · retirado</span></button>' +
           '<div class="borrar-fila"><button class="btn-borrar" data-borrar="' + S.id + '">Borrar</button></div></div>'; }
@@ -410,7 +915,7 @@ function inicio() {
         return '<div class="fila-ev"><button class="ev" data-id="' + S.id + '"><span class="n"><b>' + esc(parejaTxt(S)) + '</b><span>' + fmt(S.inicio) + (S.lugar ? ' · ' + esc(S.lugar) : '') + ' · ' + esc(S.tipo) + '</span></span>' + av + '</button>' +
           (S.estado === 'final' ? '<div class="borrar-fila"><button class="btn-borrar" data-borrar="' + S.id + '">Borrar</button></div>' : '') + '</div>';
       }).join('') : '<div class="hoja sub">Todavía no hay pruebas en este celular.</div>') + '</div>';
-    $('#b-nueva').onclick = nueva; $('#b-aj').onclick = pantallaAjustes; $('#b-guia').onclick = guia;
+    $('#b-nueva').onclick = nueva; $('#b-aj').onclick = pantallaAjustes; $('#b-guia').onclick = guia; $('#b-adm').onclick = pantallaAdmin;
     Array.prototype.forEach.call(app.querySelectorAll('[data-borrar]'), function (b) { b.onclick = function () { var S = L.filter(function (x) { return x.id === b.getAttribute('data-borrar'); })[0]; if (S) dialogoBorrar([S], false); }; });
     $('#b-exp').onclick = function () { exportar(L); }; $('#b-csv').onclick = function () { exportarCSV(L); };
     $('#b-imp').onchange = function () { importar(this.files[0]); };
@@ -421,14 +926,13 @@ function pantallaAjustes() {
   var a = ajustes();
   app.innerHTML = '<div class="hoja"><h1>Ajustes</h1><label class="campo">Nombre del evaluador<input id="a-ev" value="' + esc(a.evaluador || '') + '" placeholder="Ej.: Juan Pablo Castañeda – Jefe de Pilotos"></label>' +
     '<label class="campo">Nota mínima para aprobar (0 a 100)<input id="a-nota" type="number" min="0" max="100" value="' + notaMin() + '"></label>' +
-    '<label class="campo">Maniobras de destreza por piloto (' + D.maniobras.minimo + ' a ' + D.maniobras.maximo + ')<input id="a-man" type="number" min="' + D.maniobras.minimo + '" max="' + D.maniobras.maximo + '" value="' + maniobrasAj() + '"></label>' +
-    '<p class="sub">Aplica a las pruebas nuevas; una prueba ya iniciada conserva su número de maniobras.</p>' +
+    '<p class="sub">Maniobras de destreza (' + maniobrasAj() + ') y tiempo de la prueba (' + minutosAdm() + ' min): se cambian en <b>Administración</b>, con PIN.</p>' +
     '<p class="sub">El puntaje de cada piloto es los puntos obtenidos entre los puntos posibles de las preguntas que aplican, por 100. Aprueba con la nota mínima o más.</p>' +
     '<div class="acciones"><button class="btn pri" id="a-ok">Guardar</button><button class="btn" id="a-no">Volver</button></div></div>' +
     '<div class="hoja"><h2>Borrar evaluaciones cerradas</h2><p class="sub">Para limpiar el celular después de las pruebas de ensayo. Incluye los registros incompletos de pilotos que se retiraron. Las evaluaciones en curso no se tocan. Exporta el respaldo antes si quieres conservarlas.</p>' +
     '<div class="acciones"><button class="btn peligro" id="a-borrar">Borrar todas las evaluaciones cerradas</button></div></div>';
   $('#a-borrar').onclick = function () { todas().then(function (L) { var F = L.filter(function (S) { return S.estado === 'final' || retirado(S); }); if (!F.length) { modal('<h2>No hay evaluaciones cerradas</h2><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; } dialogoBorrar(F, true); }); };
-  $('#a-ok').onclick = function () { var mn = parseInt($('#a-man').value, 10); guardarAjustes({ evaluador: $('#a-ev').value.trim(), nota: Math.max(0, Math.min(100, +$('#a-nota').value || 0)), maniobras: isNaN(mn) ? D.maniobras.defecto : Math.max(D.maniobras.minimo, Math.min(D.maniobras.maximo, mn)) }); inicio(); };
+  $('#a-ok').onclick = function () { var b = { evaluador: $('#a-ev').value.trim(), nota: Math.max(0, Math.min(100, +$('#a-nota').value || 0)) }; if (a.maniobras != null) b.maniobras = a.maniobras; guardarAjustes(b); inicio(); };
   $('#a-no').onclick = inicio;
 }
 /* Borrar evaluaciones cerradas: siempre con este diálogo (nunca confirm()); borra también sus fotos */
@@ -448,26 +952,25 @@ function dialogoBorrar(F, todasF) {
     F.reduce(function (pr, S) { return pr.then(function () { return borrarS(S); }); }, Promise.resolve()).then(inicio);
   };
 }
-var AVISO_EMPEZAR = 'Explica la prueba y resuelve dudas ANTES de tocar Empezar; el reloj de ' + P.minutos + ' minutos arranca al tocarlo.';
-function minVuelo() { var f = P.cronograma.filter(function (x) { return /^Vuelo 1/.test(x.t); })[0]; return f ? f.a - f.de : ''; }
 function guia() {
+  var MIN = minutosAdm(), CR = escalarCrono(MIN), TJ = escenarios();
   app.innerHTML = '<div class="hoja"><h1>Guía de la prueba operacional</h1>' +
-    '<p>La pareja trabaja sola durante <b>' + P.minutos + ' minutos</b> desde que tocas «Empezar»: ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las maniobras de destreza y das las contingencias.</p>' +
-    '<div class="msg info"><b>' + esc(AVISO_EMPEZAR) + '</b></div>' +
-    '<h2>Cronograma sugerido</h2><ul>' + P.cronograma.map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join('') + '</ul>' +
-    '<h2>Qué decirles al empezar</h2><ul><li>Tienen ' + P.minutos + ' minutos para preparar, volar los dos y cerrar; cada vuelo tiene ' + minVuelo() + ' minutos, de la lista de chequeo pre-vuelo al apagado.</li><li>Cada uno vuela una vez y es observador del otro.</li>' +
+    '<p>La pareja trabaja sola durante <b>' + MIN + ' minutos</b> desde que tocas «Empezar»: ellos preparan, vuelan, se observan y cierran. Tú solo evalúas, dictas las maniobras de destreza y das las contingencias.</p>' +
+    '<div class="msg info"><b>' + esc(avisoEmpezar(MIN)) + '</b></div>' +
+    '<h2>Cronograma sugerido</h2><ul>' + CR.map(function (f) { return '<li><b>' + f.de + '–' + f.a + ' min:</b> ' + esc(f.t.replace('{A}', 'el primero').replace('{B}', 'el segundo')) + '</li>'; }).join('') + '</ul>' +
+    '<h2>Qué decirles al empezar</h2><ul><li>Tienen ' + MIN + ' minutos para preparar, volar los dos y cerrar; cada vuelo tiene ' + minVuelo(CR) + ' minutos, de la lista de chequeo pre-vuelo al apagado.</li><li>Cada uno vuela una vez y es observador del otro.</li>' +
     '<li>En su vuelo, cada uno hace la prueba de destreza: vuela mirando el dron, sin mirar la pantalla, y ejecuta las maniobras que le dictes con los puntos cardinales (November = norte, Sierra = sur, Echo = este, Whiskey = oeste). Antes, muéstrales dónde queda el November desde el dronpuerto.</li>' +
-    '<li>En cada vuelo hay situaciones que deben atender como si fueran reales: una se la muestras al piloto y otra al observador.</li><li>Cada piloto registra su vuelo en la bitácora, como en una operación normal.</li></ul>' +
-    '<h2>Orden de cada vuelo</h2><ol>' + P.pasos.map(function (p) { return '<li>' + esc(p.replace('{N}', maniobrasAj())) + '</li>'; }).join('') + '</ol><p class="sub">La pantalla de evaluación está organizada por vuelo: Preparación, Vuelo 1 (pilota el primero, observa el segundo), Vuelo 2 (al revés) y Cierre. Dentro de cada vuelo las preguntas siguen estos pasos; las del observador le suman a quien observa. La app marca el paso que sigue arriba del vuelo y en la barra. Si un piloto tiene la pareja por definir, al crear la prueba eliges un acompañante (de la lista o escribiendo el nombre) que no se evalúa: el piloto vuela en el vuelo 1, observa en el vuelo 2 y solo él recibe tarjetas, puntos e informe (sobre los mismos 100 puntos). Si alguien no llega, se va o decides reasignar, usa «Cambiar integrante» arriba de la evaluación: el que sale queda como registro incompleto (sin nota, sigue pendiente), el que entra empieza desde cero y el que se queda conserva lo suyo; con acompañante o sin reemplazo la prueba pasa a individual.</p>' +
+    '<li>Durante la prueba hay situaciones que deben atender como si fueran reales (antes del vuelo, en vuelo o en el cambio de batería): cada uno responde una como piloto y otra como observador. Les muestras la tarjeta a quien diga la app.</li><li>Cada piloto registra su vuelo en la bitácora, como en una operación normal.</li></ul>' +
+    '<h2>Orden de cada vuelo</h2><ol><li>Despegue, estacionario, C2 y comandos.</li><li>Destreza (' + maniobrasAj() + ' maniobras) y misión, en el orden que sortea la app al empezar (distinto en cada vuelo).</li><li>Entre los dos bloques, los escenarios en vuelo que se resuelven en el aire.</li><li>De últimos, después de la destreza y la misión, los escenarios que requieren aterrizar.</li><li>Regreso, aterrizaje, «¡LIBRE!» y apagado.</li></ol><p class="sub">Los escenarios antes del vuelo salen en Preparación y los del cambio de batería al comienzo del Vuelo 2. Cada uno aparece en la pantalla cuando llega su momento (por el reloj o al calificar los pasos anteriores) con el aviso «Ahora: escenario — Mostrar a … · Evalúa a …»; antes solo los ves en el resumen plegable de arriba.</p><p class="sub">La pantalla de evaluación está organizada por vuelo: Preparación, Vuelo 1 (pilota el primero, observa el segundo), Vuelo 2 (al revés) y Cierre. Dentro de cada vuelo las preguntas siguen estos pasos; las del observador le suman a quien observa. La app marca el paso que sigue arriba del vuelo y en la barra. Si un piloto tiene la pareja por definir, al crear la prueba eliges un acompañante (de la lista o escribiendo el nombre) que no se evalúa: el piloto vuela en el vuelo 1, observa en el vuelo 2 y solo él recibe tarjetas, puntos e informe (sobre los mismos 100 puntos). Si alguien no llega, se va o decides reasignar, usa «Cambiar integrante» arriba de la evaluación: el que sale queda como registro incompleto (sin nota, sigue pendiente), el que entra empieza desde cero y el que se queda conserva lo suyo; con acompañante o sin reemplazo la prueba pasa a individual.</p>' +
     '<h2>Calificación</h2><p class="sub">' + LISTA.items.length + ' preguntas; cada una vale lo que dice entre paréntesis y en total suman ' + puntosLista(LISTA) + ' puntos. El puntaje es los puntos obtenidos entre los puntos de las preguntas que aplican, por 100, con un decimal (una «no aplica» no cuenta). Ninguna pregunta es crítica: aprueba con ' + notaMin() + ' o más. Al cerrar, la app dice dónde perdió puntos cada piloto, de mayor a menor.</p>' +
-    LISTA.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + (s.nota_evaluador ? '<p class="sub"><b>Solo para ti:</b> ' + esc(s.nota_evaluador) + '</p>' : '') + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.trampa ? ' · vuelo ' + i.trampa : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
-    '<h2>Trampas (solo para ti)</h2><p class="sub">Una en cada vuelo, después de la tarjeta del observador y antes de la del piloto. Nunca se muestran en pantalla: las das de palabra.</p><ul>' + Object.keys(P.trampas).map(function (n) { return '<li><b>Vuelo ' + n + ':</b> ' + esc(P.trampas[n]) + '</li>'; }).join('') + '</ul>' +
-    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. Las direcciones son absolutas (no dependen de hacia dónde apunte el dron): November = norte, Sierra = sur, Echo = este, Whiskey = oeste. La app sortea ' + maniobrasAj() + ' maniobras por piloto (se cambia en Ajustes, de ' + D.maniobras.minimo + ' a ' + D.maniobras.maximo + '): cada una es orientación de la nariz hacia un punto cardinal + desplazamiento horizontal de ' + D.horizontal.join(' o ') + ' m o vertical (' + D.vertical.join(' / ').toLowerCase() + '), casi todas con la nariz hacia otro lado del desplazamiento y distintas a las del compañero. No hay maniobras de despegue, regreso ni aterrizaje. Ejemplo: «Nariz al November. Desplázate 15 m al Whiskey.»</p>' +
-    '<p class="sub">Toca la maniobra al dictarla: arranca un contador de ' + D.segundos + ' s (solo es una guía; no califica solo). Califica cada maniobra:</p><ul>' + D.notas.map(function (x) { return '<li><b>' + x[2] + ' (' + x[1] + '):</b> ' + esc(x[3]) + '.</li>'; }).join('') + '</ul>' +
-    '<p class="sub">Si tienes que intervenir en una maniobra, márcala «No la hizo». Con ' + maniobrasAj() + ' maniobras el máximo es ' + (2 * maniobrasAj()) + '. Puntos de la destreza = ' + D.valor + ' × (puntos de las maniobras / ' + (2 * maniobrasAj()) + ') − 1 por cada mirada a la pantalla después de la ' + D.miradas_libres + '.ª (mínimo 0), con un decimal; se calcula solo al calificar todas las maniobras.</p>' +
-    '<h2>Tarjetas de contingencia (' + P.tarjetas.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Dos por vuelo, a pantalla completa solo a su destinatario: una para el piloto (cualquier ejecutable en vuelo, incluso de tiempo alto, porque va de última; en esas le preguntas al final «' + PREGUNTA_ALTO + '»; la evalúas en «¿Atendió la contingencia…?» del que vuela) y otra para el observador (ejecutable en vuelo y que se resuelve en el aire; la evalúas en «¿Avisó a tiempo las amenazas…?» del que observa). Así cada piloto recibe una como piloto y otra como observador. El sorteo no repite tarjeta ni familia en la pareja; las demás se eligen a mano con «o elegir…».</p>' +
+    LISTA.secciones.map(function (s) { return '<h2 style="font-size:15px">' + esc(s.titulo) + (s.tipo === 'conjunta' ? ' (pareja)' : s.tipo === 'piloto' ? ' (cada piloto)' : ' (cada piloto, en el vuelo del compañero)') + '</h2><ol start="' + s.items[0].id + '">' + (s.nota_evaluador ? '<p class="sub"><b>Solo para ti:</b> ' + esc(s.nota_evaluador) + '</p>' : '') + s.items.map(function (i) { return '<li>' + esc(i.t) + ' <span class="sub">(' + i.p + (i.trampa ? ' · vuelo ' + i.trampa : '') + (i.por_piloto ? ' · cada piloto por su cuenta' : '') + ')</span></li>'; }).join('') + '</ol>'; }).join('') +
+    '<h2>Misión trampa (solo para ti)</h2><p class="sub">Una por vuelo, sorteada al empezar y distinta en los dos vuelos. Se la lees al piloto tal cual; ninguna se puede hacer con la autorización (hasta 60 m y dentro del polígono). Aprueban los dos si el piloto o el observador (basta con uno) detecta que no se puede, dice el motivo y no la ejecutan; si nadie la detecta, los dos pierden solo esos puntos. Si empiezan a ejecutarla, detén el ejercicio antes de los límites.</p><ul>' + Object.keys(P.misiones).map(function (n) { var m = P.misiones[n]; return '<li><b>«' + esc(m.leer) + '»</b> ' + esc(m.limite) + ' ' + esc(m.detener) + '</li>'; }).join('') + '</ul>' +
+    '<h2>Prueba de destreza: vuelo sin pantalla</h2><p class="sub">El piloto vuela con la vista en el dron. Las direcciones son absolutas (no dependen de hacia dónde apunte el dron): November = norte, Sierra = sur, Echo = este, Whiskey = oeste. La app sortea ' + maniobrasAj() + ' comandos por piloto (se cambia en Administración, de ' + D.maniobras.minimo + ' a ' + D.maniobras.maximo + '), distintos a los del compañero y sin repetir el mismo comando seguido: cada uno es girar la nariz hacia un punto cardinal y moverse hacia otro (o subir o bajar), sin distancias. No hay comandos de despegue, regreso ni aterrizaje. Ejemplo: «Nariz al Echo… muévete al November.»; cuando quieras que pare, di «alto».</p>' +
+    '<p class="sub">Toca el comando al dictarlo: arranca un contador de ' + segundosAdm() + ' s para el comando completo (si se pasa, marca una penalización por demora).</p>' +
+    '<p class="sub">Cada comando tiene dos partes, sin distancias: <b>girar</b> (nariz a un punto cardinal) y <b>mover</b> (hacia otro punto cardinal, o subir o bajar); tú dices «alto». Ejemplo: «Nariz al Echo… muévete al November». Por comando: <b>Bien</b> = 2; <b>Corrigió</b> (las veces que haga falta, una por corrección de giro o de movimiento) y <b>+ Penalización</b> (las veces que haga falta: tardó más de ' + segundosAdm() + ' s en todo el comando, o miró la pantalla; el motivo queda como dato) restan 1 cada una, sin bajar de 0; <b>No la hizo</b> = 0 (también si tienes que intervenir). Todo se puede deshacer. Con ' + maniobrasAj() + ' comandos el máximo es ' + (2 * maniobrasAj()) + '. Destreza = ' + D.valor + ' × (puntos de los comandos / ' + (2 * maniobrasAj()) + '), con un decimal; se calcula al calificar todos los comandos.</p>' +
+    '<h2>Escenarios de emergencia (' + TJ.length + (P.escenarios && P.escenarios.version ? ', escenarios ' + esc(P.escenarios.version) : '') + ')</h2><p class="sub">Al tocar «Empezar la prueba» la app sortea de una vez 4 escenarios en pareja (A como piloto y B como observador en el vuelo 1; B como piloto y A como observador en el vuelo 2) o 2 en individual, y los deja guardados. Cada escenario dice a quién se le muestra y a quién se evalúa (pueden ser distintos: p. ej., la amenaza se le muestra al observador y responde el piloto). El de piloto se califica en la pregunta 19 y el de observador en la 27. Nunca se repite un escenario ni una variante del mismo evento en la prueba, y el sorteo prefiere los menos usados en las pruebas de este celular. Las demás se eligen a mano con «o elegir…».</p><p class="sub"><b>Escenarios de comunicación (aves, otro dron, obstáculos o personas imaginarias):</b> al empezar, la app sortea un dato (por qué lado, con los mismos puntos cardinales de la destreza; altura respecto al dron; distancia aproximada) que sale en la tarjeta («por el Echo, arriba del dron»), en el resumen y en el informe. Evalúan cómo se comunica quien responde: 1) avisa de inmediato con la referencia acordada; 2) si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; 3) comunicación cerrada: el que recibe repite o confirma; 4) si el otro se mueve hacia el lado equivocado, lo corrige de inmediato. Si el piloto no reacciona o se mueve hacia la amenaza, observa cómo lo corrige el observador. Van en la pregunta del escenario (19 o 27), con su mismo peso. Las amenazas son imaginarias: nunca acerques el dron a un obstáculo real.</p>' +
     '<h2>Reporte</h2><p class="sub">A cada piloto le corresponde el reporte de la tarjeta de piloto de su vuelo (MOR, VOR o los dos; si el escenario dice «No requiere», igual es VOR). Lo hace por fuera de la app; si lo hizo se verifica en el informe del PC.</p>' +
-    GRUPOS.map(function (g) { var L = P.tarjetas.filter(function (t) { return grupoT(t) === g[0]; }); return L.length ? '<h2 style="font-size:15px">' + g[1] + ' (' + L.length + ')</h2>' + L.map(function (t) { return '<div class="tarj"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · se le muestra al <b>' + t.para + '</b> · reporte: <b>' + repTxt(t.reporte_esperado) + '</b><br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '<br><span class="sub">Tiempo:</span> ' + esc(t.tiempo) + '</div>'; }).join('') : ''; }).join('') +
+    GRUPOS.map(function (g) { var L = TJ.filter(function (t) { return grupoT(t) === g[0]; }); return L.length ? '<h2 style="font-size:15px">' + g[1] + ' (' + L.length + ')</h2>' + L.map(function (t) { return '<div class="tarj"><b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · ' + esc(rolesTxt(t)) + ' · reporte: <b>' + repTxt(t.reporte_esperado) + '</b>' + (puedeSortear(t) && t.en_sorteo === false ? ' · <i>fuera del sorteo</i>' : '') + (t._origen === 'admin' ? ' · <i>creado en Administración</i>' : t._editado ? ' · <i>editado en Administración</i>' : '') + '<br><span class="sub">Situación:</span> ' + esc(txtEscT(t, 'situacion')) + '<br><span class="sub">Lo correcto:</span> ' + esc(txtEscT(t, 'espera')) + (t.direccion ? '<br><span class="sub">Dato que la app sortea al empezar (por qué lado: November, Echo, Sierra o Whiskey; altura respecto al dron; distancia aproximada). Sale en la tarjeta, en el resumen y en el informe.</span>' : '') + (t.nota_evaluador ? '<br><span class="sub">Nota para el evaluador:</span> ' + esc(txtEscT(t, 'nota_evaluador')) : '') + '<br><span class="sub">Tiempo:</span> ' + esc(t.tiempo) + '</div>'; }).join('') : ''; }).join('') +
     '<div class="acciones"><button class="btn" id="g-vol">Volver</button></div></div>';
   $('#g-vol').onclick = inicio;
 }
@@ -511,7 +1014,7 @@ function nueva() {
       (!cual ? '<div class="campo">Tipo de operación<div class="pils">' + ['VLOS', 'EVLOS', 'BVLOS', 'Nocturno'].map(function (r) { return '<button class="pil' + (sel.tipo === r ? ' on' : '') + '" data-tipo="' + r + '">' + r + '</button>'; }).join('') + '</div></div>' +
         '<label class="campo">Dron<select id="n-dron"><option value="">Elige el dron…</option>' + DRONES.map(function (d) { var v = d.dr + ' · ' + d.modelo; return '<option' + (sel.dron === v ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
         '<p class="sub">Lugar: <b>' + esc(P.lugar) + '</b></p>' +
-        '<div class="msg info"><b>' + esc(AVISO_EMPEZAR) + '</b></div>' +
+        '<div class="msg info"><b>' + esc(avisoEmpezar()) + '</b></div>' +
         '<div class="acciones"><button class="btn pri" id="n-ok">Empezar la prueba</button><button class="btn" id="n-no">Cancelar</button></div>' : '<div class="acciones"><button class="btn" id="n-no">Cancelar</button></div>') + '</div>';
     if ($('#n-acomp')) $('#n-acomp').onclick = function () { acomp = true; dibujar(''); };
     if ($('#n-libre')) $('#n-libre').onclick = function () { sel.B = String(filtro).trim().replace(/\s+/g, ' '); sel.modo = 'individual'; sel.edit = ''; sel.prev = null; acomp = false; dibujar(null); };
@@ -529,29 +1032,32 @@ function nueva() {
     if ($('#n-dron')) $('#n-dron').onchange = function () { sel.dron = this.value; };
     $('#n-no').onclick = inicio;
     if ($('#n-ok')) $('#n-ok').onclick = function () {
+      var MIN = minutosAdm();
       if (!$('#n-dron').value) { modal('<h2>Elige el dron</h2><p>Selecciona el dron con el que van a hacer la prueba.</p><div class="acciones"><button class="btn" id="m-no">Cerrar</button></div>'); $('#m-no').onclick = cerrar; return; }
-      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value, modo: sel.modo === 'individual' ? 'individual' : 'pareja', minutos: P.minutos, maniobras: maniobrasAj(),
+      var S = { id: uid(), plantilla: P.version, version_app: VERSION, escenarios: (P.escenarios || {}).version || '', estado: 'borrador', A: sel.A, B: sel.B, tipo: sel.tipo, lugar: P.lugar, dron: $('#n-dron').value, modo: sel.modo === 'individual' ? 'individual' : 'pareja', minutos: MIN, cronograma: escalarCrono(MIN), maniobras: maniobrasAj(), segundos: segundosAdm(),
         evaluador: ajustes().evaluador || '', nota: notaMin(), inicio: Date.now(), ambos: sel.modo !== 'individual', obst: '', obs: '', fotosGen: [],
         ev: { A: { items: {}, rth: '', tp: '', to: '' }, B: { items: {}, rth: '', tp: '', to: '' } } };
       if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (g) { S.gps = [+g.coords.latitude.toFixed(6), +g.coords.longitude.toFixed(6)]; guardarS(S); }, function () {}, { timeout: 15000 });
-      guardarS(S).then(function () { evaluar(S, 'A'); });
+      /* OP-16: todos los escenarios, el orden destreza/misión y las misiones se sortean ahora, una sola vez, y quedan guardados en la sesión */
+      $('#n-ok').disabled = true;
+      todas().then(function (L) { sortearPrueba(S, L, false); return guardarS(S); }).then(function () { evaluar(S, 'A'); });
     };
   }
 }
 
 /* ---------- Evaluación ---------- */
-var ABIERTA = {}, TICK;
+var ABIERTA = {}, TICK, EVAL_ID = '', VISK = {};
 function fase(S) {
-  var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0];
+  var min = (Date.now() - S.inicio) / 60000, f = cronoDe(S).filter(function (x) { return min >= x.de && min < x.a; })[0];
   return f ? f.t.replace('{A}', nombre1(S.A)).replace('{B}', nombre1(S.B) || '(sin acompañante)') : 'Tiempo cumplido';
 }
-function faseVuelo(S) { var min = (Date.now() - S.inicio) / 60000, f = P.cronograma.filter(function (x) { return min >= x.de && min < x.a; })[0]; return f && f.vuelo ? f.vuelo : ''; }
+function faseVuelo(S) { var min = (Date.now() - S.inicio) / 60000, f = cronoDe(S).filter(function (x) { return min >= x.de && min < x.a; })[0]; return f && f.vuelo ? f.vuelo : ''; }
 function primer(n) { return String(n || '').split(' ')[0]; }
 function barra(S) {
   var ra = calcular(S, 'A'), rb = calcular(S, 'B'), b = $('#barra'), N = itemsDe(S).length * evaluados(S).length, hechos = N - ra.pend - (individual(S) ? 0 : rb.pend);
   var pt = function (r) { return r.c + r.n ? num(r.pts) : '–'; };
   b.style.display = 'flex';
-  b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span id="pasos-barra" class="pasos-barra"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / N) + '%"></i></span></span>' +
+  b.innerHTML = '<span class="t" id="reloj"></span><span style="flex:1;min-width:0"><span id="fase"></span><span id="pasos-barra" class="pasos-barra"></span><span id="ahora-barra" style="display:block"></span><span class="prog" style="display:block;margin-top:4px"><i style="width:' + (100 * hechos / N) + '%"></i></span></span>' +
     '<span class="pts2">' + esc(nombre1(S.A)) + ' <b>' + pt(ra) + '</b>' + (individual(S) ? '' : '<br>' + esc(nombre1(S.B)) + ' <b>' + pt(rb) + '</b>') + '</span>' + (ra.crit.length + (individual(S) ? 0 : rb.crit.length) ? '<span class="tag mal">' + (ra.crit.length + rb.crit.length) + 'C</span>' : '');
   var tick = function () {
     var rest = S.inicio + (S.minutos || P.minutos) * 60000 - Date.now(), s = Math.round(Math.abs(rest) / 1000), el = $('#reloj');
@@ -561,6 +1067,14 @@ function barra(S) {
     $('#fase').textContent = fase(S);
     var fv = faseVuelo(S), pp = $('#pasos-barra');
     if (pp) { var h = fv && !vieja(S) && !(individual(S) && fv === 'B') ? pasosLinea(S, fv, true) : ''; if (pp.innerHTML !== h) pp.innerHTML = h; pp.style.display = h ? 'block' : 'none'; }
+    if (nuevoModelo(S)) {
+      var AH = ahoraEsc(S), key = visKey(S), ah = $('#ahora-barra');
+      var hb = AH.length ? '<button class="btn chico pri" id="b-ahora">Ahora: escenario — ' + esc(lineaRoles(S, AH[0][0], AH[0][1])) + '</button>' : '';
+      if (ah && ah.getAttribute('data-vk') !== key) { ah.innerHTML = hb; ah.setAttribute('data-vk', key); var bb = $('#b-ahora'); if (bb) bb.onclick = function () { var x = ahoraEsc(S)[0]; if (!x) return; evaluar(S, tabDeSlot(S, x[0], x[1])); setTimeout(function () { var el = $('#sec-esc-' + x[0] + x[1]); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }; }
+      /* si un escenario llegó a su momento (por el reloj o por los pasos), se redibuja la pantalla para mostrarlo, salvo que se esté escribiendo */
+      if (VISK[S.id] != null && VISK[S.id] !== key && EVAL_ID === S.id && document.querySelector('.tabs')) { var ae = document.activeElement; if (!(ae && /^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName))) { VISK[S.id] = key; setTimeout(function () { if (EVAL_ID === S.id && document.querySelector('.tabs')) evaluar(S, TABACT); }, 0); return; } }
+      VISK[S.id] = key;
+    }
   };
   clearInterval(TICK); tick(); TICK = setInterval(tick, 1000);
 }
@@ -581,13 +1095,19 @@ function tabsDe(S) {
 }
 function tabDe(S, k, it) {
   if (vieja(S)) return k;
+  if (nuevoModelo(S) && (it.tarjeta || it.tarjeta_obs)) return it.tarjeta ? tabDeSlot(S, k, 'tp') : tabDeSlot(S, otro(k), 'to');
   if (it.s === 'P') return 'prep';
   if (it.s === 'V') return k === 'A' ? 'v1' : 'v2';
   if (it.s === 'O') return k === 'A' ? 'v2' : 'v1';
   if (it.trampa) return it.trampa === 1 ? 'v1' : 'v2';
   return 'cierre';
 }
-function filasConj(S, items) { if (individual(S)) return [items.map(function (it) { return ['A', it]; })]; return S.ambos ? [items.map(function (it) { return ['A', it]; })] : ['A', 'B'].map(function (q) { return items.map(function (it) { return [q, it]; }); }); }
+/* OP-15: con «juntos», una pregunta por_piloto (prenda reflectiva) sale dos veces seguidas, una por piloto, y se marca por separado */
+function filasConj(S, items) {
+  if (individual(S)) return [items.map(function (it) { return ['A', it]; })];
+  if (S.ambos) { var F = []; items.forEach(function (it) { F.push(['A', it]); if (it.por_piloto) F.push(['B', it]); }); return [F]; }
+  return ['A', 'B'].map(function (q) { return items.map(function (it) { return [q, it]; }); });
+}
 function bloquesDe(S, tab) {
   var L = lista(S);
   if (vieja(S)) return L.secciones.map(function (s) { return { id: s.id, titulo: tituloSec(S, tab, s), filas: s.items.map(function (it) { return [tab, it]; }) }; });
@@ -597,8 +1117,9 @@ function bloquesDe(S, tab) {
       B.push({ id: s.id + (S.ambos || individual(S) ? '' : filas[0][0]), titulo: titulo + (individual(S) ? ' – ' + nombre1(S.A) : S.ambos ? ' – juntos' : ' – ' + nombre1(S[filas[0][0]])), nota: i === 0 ? s.nota_evaluador : '', filas: filas });
     });
   };
-  if (tab === 'prep') { conj(L.SEC.P, L.SEC.P.titulo); return B; }
+  if (tab === 'prep') { conj(L.SEC.P, L.SEC.P.titulo); if (nuevoModelo(S)) slotsDe(S).forEach(function (x) { var a = asigDe(S, x[0], x[1]); if (a && a.momento === 'antes_del_vuelo') B.push(bloqueEsc(S, x[0], x[1], 'Antes del vuelo 1')); }); return B; }
   if (tab === 'cierre') { conj(L.SEC.C, L.SEC.C.titulo); return B; }
+  if (nuevoModelo(S)) return bloquesN(S, tab, L);
   var f = tab === 'v1' ? 'A' : 'B', g = otro(f), n = tab === 'v1' ? 1 : 2, V = L.SEC.V.items;
   var iD = V.map(function (x) { return !!x.destreza; }).indexOf(true), iT = V.map(function (x) { return !!x.tarjeta; }).indexOf(true);
   var O = L.SEC.O.items.slice().sort(function (a, b) { return (b.tarjeta_obs ? 1 : 0) - (a.tarjeta_obs ? 1 : 0); });
@@ -624,6 +1145,26 @@ function bloquesDe(S, tab) {
   B.push({ id: tab + '-6', titulo: '6. ' + nombre1(S[f]) + ': comunicación, aterrizaje, «¡LIBRE!» y bitácora', filas: V.slice(iT + 1).map(function (it) { return [f, it]; }) });
   return B;
 }
+/* OP-16: bloques de un vuelo: despegue, observador, destreza y misión (en el orden sorteado), escenarios en su momento
+   (los que siguen, entre los dos bloques; los que requieren aterrizar, de últimos) y aterrizaje. En el vuelo 2, primero el cambio de batería. */
+function bloquesN(S, tab, L) {
+  var f = tab === 'v1' ? 'A' : 'B', g = otro(f), n = tab === 'v1' ? 1 : 2, V = L.SEC.V.items, B = [], i = 1, ind = individual(S), soloObs = ind && f === 'B', kt = ind ? 'A' : f;
+  var iD = V.map(function (x) { return !!x.destreza; }).indexOf(true), iT = V.map(function (x) { return !!x.tarjeta; }).indexOf(true);
+  var O = L.SEC.O.items.filter(function (x) { return !x.tarjeta_obs; }), tr = L.SEC.T.items.filter(function (x) { return x.trampa === n; });
+  if (f === 'B') slotsDe(S).forEach(function (x) { var a = asigDe(S, x[0], x[1]); if (a && a.momento === 'cambio_de_bateria') B.push(bloqueEsc(S, x[0], x[1], 'Cambio de batería')); });
+  if (!soloObs) B.push({ id: tab + '-1', titulo: (i++) + '. ' + nombre1(S[f]) + ' como piloto: antes y durante el despegue', filas: V.slice(0, iD).map(function (it) { return [f, it]; }) });
+  var obs = !ind ? g : f === 'B' ? 'A' : null;
+  if (obs) B.push({ id: tab + '-o', titulo: (i++) + '. ' + nombre1(S[obs]) + ' como observador (todo el vuelo)', filas: O.map(function (it) { return [obs, it]; }) });
+  var des = soloObs ? null : { id: tab + '-d', titulo: 'Destreza de ' + nombre1(S[f]), filas: [[f, V[iD]]] };
+  var mis = { id: tab + '-m', titulo: 'Misión del vuelo ' + n + (ind ? '' : ' (vale para los dos)'), filas: tr.map(function (it) { return [kt, it]; }) };
+  var bl = soloObs ? [mis] : ordenVuelo(S, f) === 'mision' ? [mis, des] : [des, mis], e = escVuelo(S, f), num = function (b) { b.titulo = (i++) + '. ' + b.titulo; return b; };
+  B.push(num(bl[0]));
+  e.antes.forEach(function (x) { B.push(bloqueEsc(S, f, x.slot, i++)); });
+  if (bl[1]) B.push(num(bl[1]));
+  e.despues.forEach(function (x) { B.push(bloqueEsc(S, f, x.slot, i++)); });
+  if (!soloObs) B.push({ id: tab + '-6', titulo: (i++) + '. ' + nombre1(S[f]) + ': comunicación, aterrizaje, «¡LIBRE!» y bitácora', filas: V.slice(iT + 1).map(function (it) { return [f, it]; }) });
+  return B;
+}
 function contarFilas(S, filas) {
   var h = 0, m = 0;
   filas.forEach(function (x) { var e = (S.ev[x[0]].items[x[1].id] || {}).e; if (e) h++; if (e === 'n') m++; });
@@ -640,17 +1181,21 @@ function evaluar(S, tab) {
     : vuelo ? '<b>' + (tab === 'v1' ? 'Vuelo 1' : 'Vuelo 2') + ' · pilota ' + esc(nombre1(f === 'B' ? nomB(S) : S[f])) + (individual(S) && f === 'B' && S.B ? ' (acompañante)' : '') + ' · observa ' + esc(nombre1(otro(f) === 'B' ? nomB(S) : S[otro(f)])) + (individual(S) && f === 'A' && S.B ? ' (acompañante)' : '') + '</b>' +
       (individual(S) ? '<div class="msg info" style="margin:8px 0 0">' + (f === 'B' ? 'En este vuelo solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b> como observador.' : 'Solo se evalúa a <b>' + esc(nombre1(S.A)) + '</b>' + (S.B ? '; ' + esc(nombre1(S.B)) + ' es acompañante y no se evalúa.' : ' (sin acompañante).')) + '</div>' : '')
     : '<b>' + (tab === 'prep' ? 'Preparación' : 'Cierre') + '</b><span class="sub"> · ' + esc(parejaTxt(S)) + ' · ' + esc(S.tipo) + (S.lugar ? ' · ' + esc(S.lugar) : '') + '</span>';
-  var bl = bloquesDe(S, tab);
+  var bl = bloquesDe(S, tab); EVAL_ID = S.id; if (nuevoModelo(S)) VISK[S.id] = visKey(S);
+  bl.forEach(function (b) { if (!b.esc) return; var a = asigDe(S, b.esc[0], b.esc[1]); b.oculto = !visibleEsc(S, b.esc[0], b.esc[1]); b.ahora = !!a && !b.oculto && !respK(S, b.filas[0][0], b.filas[0][1].id) && S.estado !== 'final'; });
   app.innerHTML = '<div class="tabs" style="grid-template-columns:repeat(' + T.length + ',1fr)">' + T.map(function (t) { return '<button data-tab="' + t.id + '" class="' + (t.id === tab ? 'on' : '') + '">' + esc(t.t) + '<small>' + esc(tabTxt(S, t)) + '</small></button>'; }).join('') + '</div>' +
     '<div class="hoja" style="padding:10px 14px">' + cab +
-    (vuelo || individual(S) ? '' : '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las preguntas «juntos» se marcan para los dos</label>') +
-    (vieja(S) ? '' : '<div class="acciones" style="margin:8px 0 0"><button class="btn chico" id="ev-camb">Cambiar integrante</button></div>') + cambiosHtml(S, true) + '</div>' +
+    (vuelo || individual(S) ? '' : '<label class="amb" style="margin:8px 0 0"><input type="checkbox" id="ambos"' + (S.ambos ? ' checked' : '') + '> Las preguntas «juntos» se marcan para los dos (la prenda reflectiva, siempre por separado)</label>') +
+    (vieja(S) ? '' : '<div class="acciones" style="margin:8px 0 0"><button class="btn chico" id="ev-camb">Cambiar integrante</button></div>') + cambiosHtml(S, true) + (nuevoModelo(S) ? resumenEscHtml(S) : '') + '</div>' +
     (AVISO_EV ? '<div class="msg ok" id="ev-aviso">' + AVISO_EV + '</div>' : '') +
     (vuelo && !(individual(S) && f === 'B') ? pasosHtml(S, f) : '') +
     bl.map(function (b) {
-      return '<div class="sec' + (ABIERTA[b.id] === false ? '' : ' abierta') + '" id="sec-' + b.id + '"><button class="cab" data-sec="' + b.id + '">' + esc(b.titulo) + '<span class="cnt" data-cnt="' + b.id + '">' + contarFilas(S, b.filas) + '</span></button><div class="cuerpo">' +
+      var a = b.esc ? asigDe(S, b.esc[0], b.esc[1]) : null;
+      return '<div class="sec' + (ABIERTA[b.id] === false && !b.ahora ? '' : ' abierta') + (b.ahora ? ' ahora' : '') + '" id="sec-' + b.id + '"><button class="cab" data-sec="' + b.id + '">' + esc((b.ahora ? 'Ahora · ' : '') + b.titulo) + '<span class="cnt" data-cnt="' + b.id + '">' + contarFilas(S, b.filas) + '</span></button><div class="cuerpo">' +
         (b.nota ? '<div class="msg info" style="margin:10px 14px 0"><b>Solo para ti:</b> ' + esc(b.nota) + '</div>' : '') +
-        b.filas.map(function (x) { return itemHtml(S, x[0], x[1]); }).join('') + '</div></div>';
+        (b.ahora ? '<div class="ahora-av"><b>Ahora: escenario — ' + esc(lineaRoles(S, b.esc[0], b.esc[1])) + '</b></div>' : '') +
+        (b.oculto ? '<div class="esc-oculto"><b>Todavía no es su momento.</b> Este escenario (' + esc(momTxt(a.momento).toLowerCase()) + ') aparece aquí cuando llegue su fase o cuando se califiquen los pasos anteriores del vuelo. Si quieres prepararte, míralo en el resumen plegable de arriba.<div class="acciones"><button class="btn chico" data-vis="' + b.esc.join(',') + '">Ya es el momento: mostrarlo</button></div></div>'
+          : b.filas.map(function (x) { return itemHtml(S, x[0], x[1]); }).join('')) + '</div></div>';
     }).join('') +
     (vieja(S) || tab === 'cierre' ? '<div class="hoja">' + (vieja(S) ? [tab] : evaluados(S)).map(function (q) { return obsHtml(S, q); }).join('') +
       '<h2 style="margin-top:12px">Observaciones generales de la prueba</h2><textarea id="obs" rows="2">' + esc(S.obs || '') + '</textarea>' +
@@ -664,7 +1209,8 @@ function evaluar(S, tab) {
   if ($('#ev-sig')) $('#ev-sig').onclick = function () { evaluar(S, ids[ids.indexOf(tab) + 1]); window.scrollTo(0, 0); };
   if ($('#ambos')) $('#ambos').onchange = function () { S.ambos = this.checked; guardarS(S); evaluar(S, tab); };
   Array.prototype.forEach.call(app.querySelectorAll('[data-sec]'), function (b) { b.onclick = function () { var id = b.getAttribute('data-sec'), el = $('#sec-' + id); el.classList.toggle('abierta'); ABIERTA[id] = el.classList.contains('abierta'); }; });
-  bl.forEach(function (b) { b.filas.forEach(function (x) { enlazarItem(S, x[0], x[1].id); }); });
+  bl.forEach(function (b) { if (b.oculto) return; b.filas.forEach(function (x) { enlazarItem(S, x[0], x[1].id); }); });
+  Array.prototype.forEach.call(app.querySelectorAll('[data-vis]'), function (b) { b.onclick = function () { var x = b.getAttribute('data-vis').split(','); S.ev[x[0]].vis = S.ev[x[0]].vis || {}; S.ev[x[0]].vis[x[1]] = true; guardarS(S); evaluar(S, tab); }; });
   var dl = function (el, fn) { el.oninput = function () { fn(el.value); clearTimeout(el.t); el.t = setTimeout(function () { guardarS(S); }, 400); }; };
   Array.prototype.forEach.call(app.querySelectorAll('[data-obsk]'), function (el) { dl(el, function (v) { S.ev[el.getAttribute('data-obsk')].obs = v; }); });
   if ($('#obs')) dl($('#obs'), function (v) { S.obs = v; });
@@ -696,12 +1242,14 @@ function datoHtml(S, k, it) {
 }
 function itemHtml(S, k, it) {
   var r = S.ev[k].items[it.id] || {};
-  var cab = '<div class="tx"><small>' + it.id + '</small>' + esc(it.t) + ' <span class="sub">(' + it.p + ' pts)</span>' + (it.c ? ' <span class="tag crit">Crítico</span>' : '') + '</div>';
+  var cab = '<div class="tx"><small>' + it.id + '</small>' + (it.por_piloto && !individual(S) ? '<span class="tag ok" style="margin-right:6px">' + esc(nombre1(S[k])) + '</span>' : '') + esc(it.t) + ' <span class="sub">(' + it.p + ' pts' + (it.por_piloto && !individual(S) ? ', cada piloto por su cuenta' : '') + ')</span>' + (it.c ? ' <span class="tag crit">Crítico</span>' : '') + '</div>';
   var dx = it.destreza && !vieja(S) ? destreza(S, k) : null;
   var est = dx ? '<div class="sub" style="margin:6px 0">Se califica sola con las maniobras: <b>' + (dx.completa ? num(dx.puntos) + ' de ' + it.p : 'pendiente') + '</b></div>' :
     it.destreza ? '<div class="sub" style="margin:6px 0">Se responde sola al calificar las órdenes: <b>' + (r.e === 'c' ? 'Sí' : r.e === 'n' ? 'No' : 'pendiente') + '</b></div>' :
+    it.mision && nuevoModelo(S) ? '<div class="est"><button class="c' + (r.e === 'c' ? ' on' : '') + '" data-est="c">La detectaron y no la ejecutaron</button><button class="n' + (r.e === 'n' ? ' on' : '') + '" data-est="n">No la detectaron (intentaron hacerla)</button><button class="na' + (r.e === 'na' ? ' on' : '') + '" data-est="na">No aplica</button></div>' +
+      (r.e === 'c' ? '<div class="sub" style="margin:6px 0">¿Quién la detectó? (solo como dato) ' + ['piloto', 'observador', 'ambos'].map(function (q) { var on = ((S.mision || {})[it.trampa] || {}).quien === q; return '<button class="btn chico' + (on ? ' pri' : '') + '" data-mq="' + q + '">' + q.charAt(0).toUpperCase() + q.slice(1) + '</button>'; }).join(' ') + '</div>' : '') :
     '<div class="est"><button class="c' + (r.e === 'c' ? ' on' : '') + '" data-est="c">Sí</button><button class="n' + (r.e === 'n' ? ' on' : '') + '" data-est="n">No</button><button class="na' + (r.e === 'na' ? ' on' : '') + '" data-est="na">No aplica</button></div>';
-  return '<div class="it" id="it-' + k + '-' + it.id + '" data-k="' + k + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k, 'tp') : '') + (it.tarjeta_obs ? tarjetaHtml(S, otro(k), 'to') : '') + (it.trampa ? trampaHtml(S, it) : '') + est +
+  return '<div class="it" id="it-' + k + '-' + it.id + '" data-k="' + k + '">' + cab + (it.destreza ? destrezaHtml(S, k) : '') + (it.tarjeta ? tarjetaHtml(S, k, 'tp') : '') + (it.tarjeta_obs ? tarjetaHtml(S, otro(k), 'to') : '') + (it.trampa ? (it.mision && nuevoModelo(S) ? misionHtml(S, it) : trampaHtml(S, it)) : '') + est +
     datoHtml(S, k, it) +
     '<div class="extra"><textarea rows="1" data-nota placeholder="Anotación' + (r.e === 'n' ? ' (qué falló)' : '') + '">' + esc(r.nota || '') + '</textarea>' +
     '<label class="camara">📷<input type="file" accept="image/*" capture="environment" hidden data-cam></label></div>' +
@@ -713,6 +1261,7 @@ function cronoTxt(k, i) { if (!CRONO || CRONO.k !== k || CRONO.i !== i) return '
 function cronoTick() { var el = CRONO && document.getElementById('crono-' + CRONO.k + '-' + CRONO.i); if (el) { var t = cronoTxt(CRONO.k, CRONO.i); el.textContent = t; el.className = 'crono' + (t === 'tiempo' ? ' fin' : ''); } if (CRONO && Date.now() > CRONO.fin + 5000) { clearInterval(TCRONO); } }
 function destrezaHtml(S, k) {
   var d = S.ev[k].des, x = destreza(S, k), caja = 'border-color:var(--verde);background:var(--verde-s)';
+  if (desN(d)) return destrezaHtmlN(S, k);
   var norte = '<div class="msg info" style="margin:0 0 8px;font-weight:bold">🧭 ' + esc(D.aviso) + '</div>';
   if (!d) return '<div class="tarj" style="' + caja + '">' + norte + 'Vuelo con la vista en el dron, sin mirar la pantalla. Sortea las maniobras antes del despegue.<div class="acciones"><button class="btn pri chico" id="d-sort">Sortear maniobras</button></div></div>';
   if (x.vieja) return '<div class="tarj" style="' + caja + '"><b>Destreza (lista ' + esc(S.plantilla) + '): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas</b> – ' + (x.ok ? 'aprobada' : x.completa ? 'no aprobada' : 'incompleta') + '<div class="sub">Sesión de una versión anterior: la destreza no se edita en esta versión.</div></div>';
@@ -726,7 +1275,23 @@ function destrezaHtml(S, k) {
     '<div class="acciones"><button class="btn chico" id="d-mir">👁 Miró la pantalla (' + d.mir + ')</button><button class="btn chico" id="d-mirm">−1</button>' +
     '<button class="btn chico" id="d-sort">Sortear otras</button></div></div>';
 }
-function quienes(S, k, it) { return it.tipo === 'conjunta' && S.ambos && !individual(S) ? ['A', 'B'] : [k]; }
+function destrezaHtmlN(S, k) {
+  var d = S.ev[k].des, x = destreza(S, k), sg = segundosDe(S), caja = 'border-color:var(--verde);background:var(--verde-s)';
+  return '<div class="tarj" style="' + caja + '"><div class="msg info" style="margin:0 0 8px;font-weight:bold">🧭 ' + esc(D.aviso) + '</div>' +
+    '<b>Destreza (' + d.ord.length + ' comandos): ' + x.pts + ' de ' + x.max + ' → ' + (x.completa ? num(x.puntos) : '…') + ' de ' + D.valor + '</b>' + (d.pen.length ? ' <span class="sub">· penalizaciones: ' + d.pen.length + '</span>' : '') +
+    '<div class="sub" style="margin:4px 0 8px">Cada comando tiene dos partes: <b>girar</b> (nariz a un punto cardinal) y <b>mover</b> (hacia otro punto cardinal, o subir o bajar), sin distancias: tú dices «alto». Léelo tal cual y tócalo al dictarlo (arranca ' + sg + ' s para el comando completo). <b>Bien</b>: 2. <b>Corrigió</b>: una vez por cada corrección (de giro o de movimiento). <b>+ Penalización</b>: si tardó más de ' + sg + ' s en todo el comando o miró la pantalla. Puntos del comando = 2 − correcciones − penalizaciones (mínimo 0); <b>No la hizo</b> = 0. Destreza = ' + D.valor + ' × puntos / ' + x.max + '.</div>' +
+    d.ord.map(function (o, i) {
+      var c = d.cor[i] || 0, P1 = penDe(d, i), p = ptsCmd(d, i);
+      return '<div class="orden" data-ord="' + i + '"><button class="ord-tx" data-do="' + i + '"><b>' + (i + 1) + '.</b> ' + esc(o) + ' <span class="crono" id="crono-' + k + '-' + i + '">' + cronoTxt(k, i) + '</span> <span class="tag ' + (p == null ? 'pen' : p === 2 ? 'ok' : 'mal') + '" data-pc="' + i + '">' + (p == null ? '–' : p) + ' de 2</span></button><div class="nota3">' +
+        '<button class="b' + (d.k[i] === 'b' && !c && !P1.length ? ' on' : '') + '" data-dk="' + i + ',b">Bien<small>2</small></button>' +
+        '<button class="r' + (c ? ' on' : '') + '" data-dk="' + i + ',r">' + (c ? 'Corrigió ×' + c : 'Corrigió') + '<small>−1</small></button>' +
+        '<button class="n' + (d.k[i] === 'n' ? ' on' : '') + '" data-dk="' + i + ',n">No la hizo<small>0</small></button></div>' +
+        '<div class="acciones" style="margin:4px 0 0">' + (c ? '<button class="btn chico" data-dk="' + i + ',r-">Deshacer corrección</button>' : '') +
+        '<button class="btn chico" data-dp="' + i + '">+ Penalización' + (P1.length ? ' ×' + P1.length : '') + '</button>' + (P1.length ? '<button class="btn chico" data-dpu="' + i + '">Deshacer penalización</button><span class="sub" data-pen="' + i + '">Penalización ×' + P1.length + ' (' + esc(penTxt(P1)) + ')</span>' : '') + '</div></div>';
+    }).join('') +
+    '<div class="acciones"><button class="btn chico" id="d-sort">Sortear otros</button></div></div>';
+}
+function quienes(S, k, it) { if (it.mision && nuevoModelo(S) && !individual(S)) return ['A', 'B']; return it.tipo === 'conjunta' && !it.por_piloto && S.ambos && !individual(S) ? ['A', 'B'] : [k]; }
 function enlazarItem(S, k, id) {
   var it = itemPorId(S, id), cont = $('#it-' + k + '-' + id);
   Array.prototype.forEach.call(cont.querySelectorAll('[data-est]'), function (b) {
@@ -737,6 +1302,7 @@ function enlazarItem(S, k, id) {
     };
   });
   if (it.destreza) enlazarDestreza(S, k, id, cont);
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-mq]'), function (b) { b.onclick = function () { S.mision = S.mision || {}; S.mision[it.trampa] = { quien: b.getAttribute('data-mq'), t: Date.now() }; guardarS(S); refrescar(S, k, id); }; });
   Array.prototype.forEach.call(cont.querySelectorAll('[data-tslot]'), function (c) { enlazarTarjeta(S, c.getAttribute('data-tf'), c.getAttribute('data-tslot'), c); });
   var ta = cont.querySelector('[data-nota]');
   ta.oninput = function () {
@@ -763,12 +1329,39 @@ function enlazarDestreza(S, k, id, cont) {
     modal('<h2>¿Sortear otras maniobras?</h2><p>Se borra lo calificado de la destreza de ' + esc(nombre1(S[k])) + ' (maniobras, miradas y puntos).</p><div class="acciones"><button class="btn pri" id="m-no">Cancelar</button><button class="btn peligro" id="m-si">Sortear otras</button></div>');
     $('#m-no').focus(); $('#m-no').onclick = cerrar; $('#m-si').onclick = function () { cerrar(); sortear(); }; };
   if (!S.ev[k].des || desViejo(S.ev[k].des)) return;
+  if (desN(S.ev[k].des)) {
+    var d = S.ev[k].des, upd = function (i) { d.v[i] = null; d.v[i] = ptsCmd(d, i); d.mir = d.pen.length; listo(); };
+    Array.prototype.forEach.call(cont.querySelectorAll('[data-dk]'), function (b) { b.onclick = function () {
+      var p = b.getAttribute('data-dk').split(','), i = +p[0], a = p[1];
+      if (a === 'b') { if (d.k[i] === 'b' && !d.cor[i]) d.k[i] = null; else { d.k[i] = 'b'; d.cor[i] = 0; } }
+      else if (a === 'n') d.k[i] = d.k[i] === 'n' ? null : 'n';
+      else if (a === 'r') { d.cor[i] = (d.cor[i] || 0) + 1; if (d.k[i] !== 'b') d.k[i] = 'b'; }
+      else if (a === 'r-') d.cor[i] = Math.max(0, (d.cor[i] || 0) - 1);
+      upd(i); }; });
+    Array.prototype.forEach.call(cont.querySelectorAll('[data-dp]'), function (b) { b.onclick = function () { var i = +b.getAttribute('data-dp');
+      modal('<h2>Penalización · comando ' + (i + 1) + '</h2><p class="sub">' + esc(d.ord[i]) + '</p><p>¿Por qué? (el motivo queda como dato; cada penalización resta 1 punto al comando)</p><div class="acciones"><button class="btn pri" id="m-dem">Demora (más de ' + segundosDe(S) + ' s)</button><button class="btn pri" id="m-pan">Miró la pantalla</button><button class="btn" id="m-no">Cancelar</button></div>');
+      $('#m-no').onclick = cerrar;
+      var pon = function (m) { cerrar(); d.pen.push({ i: i, m: m, t: Date.now() }); if (d.k[i] !== 'b') d.k[i] = 'b'; upd(i); };
+      $('#m-dem').onclick = function () { pon('demora'); }; $('#m-pan').onclick = function () { pon('pantalla'); }; }; });
+    Array.prototype.forEach.call(cont.querySelectorAll('[data-dpu]'), function (b) { b.onclick = function () { var i = +b.getAttribute('data-dpu'), j = -1; d.pen.forEach(function (p, n) { if (p.i === i) j = n; }); if (j >= 0) d.pen.splice(j, 1); upd(i); }; });
+    Array.prototype.forEach.call(cont.querySelectorAll('[data-do]'), function (b) { b.onclick = function () { CRONO = { k: k, i: +b.getAttribute('data-do'), fin: Date.now() + segundosDe(S) * 1000 }; clearInterval(TCRONO); TCRONO = setInterval(cronoTick, 250); cronoTick(); }; });
+    return;
+  }
   Array.prototype.forEach.call(cont.querySelectorAll('[data-do]'), function (b) { b.onclick = function () { CRONO = { k: k, i: +b.getAttribute('data-do'), fin: Date.now() + D.segundos * 1000 }; clearInterval(TCRONO); TCRONO = setInterval(cronoTick, 250); cronoTick(); }; });
   Array.prototype.forEach.call(cont.querySelectorAll('[data-dv]'), function (b) { b.onclick = function () { var p = b.getAttribute('data-dv').split(','), d = S.ev[k].des, i = +p[0], v = +p[1]; d.v[i] = d.v[i] === v ? null : v; listo(); }; });
   var g = function (sel, fn) { var e = cont.querySelector(sel); if (e) e.onclick = function () { fn(S.ev[k].des); listo(); }; };
   g('#d-mir', function (d) { d.mir++; }); g('#d-mirm', function (d) { d.mir = Math.max(0, d.mir - 1); }); g('#d-int', function (d) { d.inter = !d.inter; });
 }
 /* trampas: tarjeta solo para el evaluador (nunca se muestra a los pilotos) */
+/* OP-16: misión trampa (imposible con la autorización: hasta 60 m y dentro del polígono); texto exacto para leerle al piloto */
+function misionHtml(S, it) {
+  var n = it.trampa, f = n === 1 ? 'A' : 'B', m = misionDe(S, n);
+  if (!m) return '<div class="tarj">Sin misión sorteada.</div>';
+  return '<div class="tarj no-print" style="border-color:var(--rojo);background:var(--rojo-s)"><b>Solo para el evaluador · misión del vuelo ' + n + ' (pilota ' + esc(nombre1(nomK(S, f))) + ')</b>' +
+    '<div class="roles" style="border-color:var(--rojo);margin-top:6px">Léele al piloto, tal cual: <b>«' + esc(m.leer) + '»</b></div>' +
+    '<span class="sub">Por qué no se puede:</span> ' + esc(m.limite) + '<br><span class="sub">Se aprueba</span> si el piloto o el observador (basta con uno) detecta que no se puede, informa el motivo (' + esc(m.motivo) + ' de la autorización) y no la ejecutan. Si ninguno la detecta, los dos pierden solo los puntos de la misión.' +
+    '<br><b>Seguridad: ' + esc(m.detener) + '</b> Nunca dejes que la ejecuten fuera de los límites.</div>';
+}
 function trampaHtml(S, it) {
   var f = it.trampa === 1 ? 'A' : 'B';
   return '<div class="tarj no-print" style="border-color:var(--rojo);background:var(--rojo-s)"><b>Solo para el evaluador · vuelo ' + it.trampa + ' (pilota ' + esc(nombre1(S[f])) + ')</b><br>' + esc(P.trampas[String(it.trampa)]) + '<div class="sub">No se la muestres a nadie: es una orden que debes dar de palabra.</div></div>';
@@ -788,13 +1381,66 @@ function pasoActual(S, f) {
   var n = hechos.indexOf(false); return n < 0 ? P.pasos.length : n;
 }
 function pasosLinea(S, f, corto) {
+  if (nuevoModelo(S)) { var LN = pasosN(S, f), an = LN.map(function (x) { return x.hecho; }).indexOf(false); if (an < 0) an = LN.length;
+    return LN.map(function (p, i) { var t = corto ? p.t.split(' (')[0].split(',')[0] : p.t; return '<span class="paso' + (i === an ? ' on' : i < an ? ' ok' : '') + '">' + (i + 1) + ' ' + esc(t) + '</span>'; }).join(corto ? ' → ' : ''); }
   var a = pasoActual(S, f);
   return P.pasos.map(function (p, i) { p = p.replace('{N}', maniobrasDe(S)); var t = corto ? p.split(' (')[0].split(',')[0] : p; return '<span class="paso' + (i === a ? ' on' : i < a ? ' ok' : '') + '">' + (i + 1) + ' ' + esc(t) + '</span>'; }).join(corto ? ' → ' : '');
 }
 function pasosHtml(S, f) { return '<div class="pasos" id="pasos-' + f + '"><b>Orden del vuelo de ' + esc(nombre1(S[f])) + ':</b> ' + pasosLinea(S, f, false) + '</div>'; }
 /* f = dueño del vuelo; la tarjeta «tp» se le muestra a él y la «to» a su observador (el compañero) */
 function quienTarjeta(S, f, t) { return t.para === 'observador' ? S[otro(f)] : S[f]; }
+function tarjetaN(S, f, slot) {
+  var a = asigDe(S, f, slot), t = a && a.t, n = f === 'A' ? 1 : 2, ev = evaluadoDe(f, slot), rol = slotRol(slot), m = t ? modeloT(t) : null;
+  var cambia = m && m.mostrar_a === 'cualquiera' && m.responde !== 'quien_lo_ve' && !(individual(S) && !S.B);
+  var ops = escenarios().filter(function (x) { return sirve(x, f, slot); });
+  if (t && !ops.some(function (x) { return x.id === t.id; })) ops = ops.concat([t]);
+  return '<div data-tf="' + f + '" data-tslot="' + slot + '"><div class="tarj">' +
+    (t ? '<div class="roles"><b>Mostrar a: ' + esc(nombre1(nomK(S, a.quien))) + ' (' + a.mostrar + ')</b><br><b>Evalúa a: ' + esc(nombre1(nomK(S, ev))) + ' como ' + rol + '</b></div>' +
+      '<b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> <span class="sub">· ' + esc(momTxt(a.momento)) + (a.momento === 'en_vuelo' ? ' ' + n : '') + '</span>' + (datoTxt(t) ? '<div class="roles" data-dir style="margin-top:6px">Dato sorteado: <b>' + esc(datoTxt(t)) + '</b></div>' : '<br>') + '<span class="sub">Situación:</span> ' + esc(txtEscT(t, 'situacion')) +
+      '<br><span class="sub">Lo correcto:</span> ' + esc(txtEscT(t, 'espera')) + (t.nota_evaluador ? '<div class="msg info" style="margin:6px 0 0"><b>Nota para ti:</b> ' + esc(txtEscT(t, 'nota_evaluador')) + '</div>' : '') + (nivel(t) === 'alto' ? '<br><b>Pregúntale: «' + PREGUNTA_ALTO + '»</b> <span class="sub">(lo que responda también cuenta en esta pregunta)</span>' : '') +
+      '<br><span class="sub">' + (slot === 'tp' ? 'Reporte que le corresponde:' : 'Reporte del escenario:') + '</span> <b>' + repTxt(t.reporte_esperado) + '</b> <span class="sub">(texto del escenario: ' + esc(t.reporte) + ')</span>' +
+      '<br><span class="sub">' + (a.ultimo ? 'Requiere aterrizar: va de último en el vuelo, después de la destreza y la misión.' : a.momento === 'en_vuelo' ? 'Solucionable: después del escenario el vuelo sigue.' : 'Solucionable: después del escenario la prueba sigue.') + (m.responde !== 'quien_lo_ve' && a.mostrar !== rol ? ' Se le muestra al ' + a.mostrar + ', pero responde y se evalúa el ' + rol + '.' : '') + '</span>'
+      : '<span class="sub">Sin escenario todavía (' + esc(txtEsc(S, f, slot)) + ').</span>') +
+    '<div class="acciones">' + (t ? '<button class="btn pri chico" data-mos>Mostrar a ' + esc(nombre1(nomK(S, a.quien))) + '</button>' : '') +
+    (cambia ? '<button class="btn chico" data-cmos>Mostrárselo al ' + (a.mostrar === 'piloto' ? 'observador' : 'piloto') + '</button>' : '') +
+    '<button class="btn chico" data-sort>' + (t ? 'Sortear otro' : 'Sortear escenario') + '</button>' +
+    '<select class="btn chico" data-elige><option value="">o elegir…</option>' + MOMENTOS.map(function (g) {
+      var X = ops.filter(function (x) { return momentosValidos(x, f).indexOf(g[0]) >= 0 || (t && x.id === t.id && a.momento === g[0]); });
+      return X.length ? '<optgroup label="' + g[1] + '">' + X.map(function (x) { return '<option value="' + x.id + '|' + g[0] + '"' + (t && x.id === t.id && a.momento === g[0] ? ' selected' : '') + '>' + esc(x.id + ' · ' + x.t + (x.en_sorteo === false ? ' (fuera del sorteo)' : '')) + '</option>'; }).join('') + '</optgroup>' : '';
+    }).join('') + '</select></div></div></div>';
+}
+function motivoChoque(r) { return r === 'repetido' ? 'ese escenario ya está en esta prueba' : r === 'familia' ? 'es una variante del mismo evento (misma familia) de otro escenario de esta prueba' : r === 'tierra' ? 'este vuelo ya tiene un escenario en tierra' : r === 'termina' ? 'este vuelo ya tiene un escenario que requiere aterrizar' : r; }
+function enlazarTarjetaN(S, f, slot, c) {
+  var k = f + '.' + slot, rol = slotRol(slot), listo = function () { S.ev[f].vis = S.ev[f].vis || {}; S.ev[f].vis[slot] = true; guardarS(S).then(function () { evaluar(S, TABACT); }); };
+  c.querySelector('[data-sort]').onclick = function () {
+    todas().then(function (L) {
+      var a = asigDe(S, f, slot), uso = usoEscenarios(L, S.id), cat = catSorteo(), vet = a ? [a.t.id] : [], asg = asgActual(S, k), mm = {};
+      if (a) mm[k] = a.momento;
+      if (!resolverRot(S, [[f, slot]], asg, cat, uso, mm, vet)) { asg = asgActual(S, k); resolverRot(S, [[f, slot]], asg, cat, uso, null, vet); }
+      if (!asg[k]) return avisoM('No hay otro escenario para sortear', 'Los escenarios activos que evalúan al ' + rol + ' en este vuelo ya están usados en esta prueba (o son variantes del mismo evento). Elige uno con «o elegir…» o activa más en Administración.');
+      ponerSlot(S, f, slot, asg[k]); listo();
+    });
+  };
+  c.querySelector('[data-elige]').onchange = function () {
+    if (!this.value) return; var p = this.value.split('|'), t = buscarTarjeta(p[0]), a = asigDe(S, f, slot); if (!t) return;
+    if (a && a.t.id === t.id && a.momento === p[1]) return;
+    var m = modeloT(t), x = { t: t, momento: p[1], mostrar: a && a.t.id === t.id ? a.mostrar : mostrarDe(S, rol, m) };
+    if (individual(S) && !S.B && x.mostrar !== rol) { avisoM('No se puede en esta prueba', 'Es una prueba individual sin acompañante: este escenario se le muestra al ' + x.mostrar + ' y no hay a quién mostrárselo.'); evaluar(S, TABACT); return; }
+    var r = choca(asgActual(S, k), f, x, []);
+    if (r) { avisoM('No se puede elegir ese escenario', 'No se asignó porque ' + motivoChoque(r) + '.'); evaluar(S, TABACT); return; }
+    ponerSlot(S, f, slot, x); listo();
+  };
+  var cm = c.querySelector('[data-cmos]');
+  if (cm) cm.onclick = function () { var t = S.ev[f][SLOT[slot].copia]; t.asig = t.asig || {}; t.asig.mostrar = asigDe(S, f, slot).mostrar === 'piloto' ? 'observador' : 'piloto'; guardarS(S).then(function () { evaluar(S, TABACT); }); };
+  var mo = c.querySelector('[data-mos]');
+  if (mo) mo.onclick = function () {
+    var a = asigDe(S, f, slot), m = $('#mostrar');
+    m.innerHTML = '<div class="p">' + esc(nombre1(nomK(S, a.quien))) + ' (' + a.mostrar + ')</div><div class="q">' + esc(txtEscT(a.t, 'situacion')) + '</div><div class="c">Toca la pantalla para cerrar</div>';
+    m.classList.add('on'); m.onclick = function () { m.classList.remove('on'); };
+  };
+}
 function tarjetaHtml(S, f, slot) {
+  if (nuevoModelo(S)) return tarjetaN(S, f, slot);
   var t = tarjetaDe(S, f, slot), q = t ? quienTarjeta(S, f, t) : '', para = SLOT[slot].para;
   return '<div data-tf="' + f + '" data-tslot="' + slot + '"><div class="tarj">' + '<div class="sub" style="font-weight:bold">' + (slot === 'tp' ? 'Tarjeta para ' + esc(nombre1(S[f])) + ' (piloto)' : 'Tarjeta para ' + esc(nombre1(S[otro(f)])) + ' (observador)') + '</div>' +
     (t ? '<b>' + esc(t.id) + ' · ' + esc(t.t) + '</b> · para el <b>' + t.para + '</b>: ' + esc(q) + '<br><span class="sub">Situación:</span> ' + esc(t.situacion) +
@@ -803,22 +1449,26 @@ function tarjetaHtml(S, f, slot) {
     '<div class="acciones">' + (t ? '<button class="btn pri chico" data-mos>Mostrar a ' + esc(nombre1(q)) + '</button>' : '') +
     '<button class="btn chico" data-sort>' + (t ? 'Sortear otra' : 'Sortear tarjeta') + '</button>' +
     '<select class="btn chico" data-elige><option value="">o elegir…</option>' + GRUPOS.map(function (g) {
-      var L = P.tarjetas.filter(function (x) { return x.para === para && grupoT(x) === g[0]; });
+      var L = escenarios().filter(function (x) { return x.para === para && grupoT(x) === g[0]; });
+      if (t && !L.some(function (x) { return x.id === t.id; }) && t.para === para && grupoT(t) === g[0]) L = L.concat([t]);
       return L.length ? '<optgroup label="' + g[1] + '">' + L.map(function (x) { return '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.id + ' · ' + x.t) + '</option>'; }).join('') + '</optgroup>' : '';
     }).join('') + '</select></div></div></div>';
 }
 function usadas(S, f, slot) { var u = []; ['A', 'B'].forEach(function (g) { ['tp', 'to'].forEach(function (s) { if (g === f && s === slot) return; var t = tarjetaDe(S, g, s); if (t) u.push(t); }); }); return u; }
 function enlazarTarjeta(S, f, slot, c) {
+  if (nuevoModelo(S)) return enlazarTarjetaN(S, f, slot, c);
   var redibujar = function () { var n = document.querySelector('[data-tf="' + f + '"][data-tslot="' + slot + '"]'); if (!n) return; var tmp = document.createElement('div'); tmp.innerHTML = tarjetaHtml(S, f, slot); var nuevo = tmp.firstChild; n.parentNode.replaceChild(nuevo, n); enlazarTarjeta(S, f, slot, nuevo); };
-  var poner = function (id) { var t = buscarTarjeta(id); S.ev[f][slot] = id; S.ev[f][SLOT[slot].copia] = t ? JSON.parse(JSON.stringify(t)) : null; guardarS(S); redibujar(); };
+  /* copia completa del escenario en la sesión: si después se edita o se borra en Administración, la prueba no cambia */
+  var poner = function (id) { var t = buscarTarjeta(id); S.ev[f][slot] = id; S.ev[f][SLOT[slot].copia] = copiaT(t); guardarS(S); redibujar(); };
   c.querySelector('[data-sort]').onclick = function () {
     var u = usadas(S, f, slot), ids = u.map(function (t) { return t.id; }), fam = [];
     u.forEach(function (t) { fam = fam.concat(t.familias || []); });
     /* sin repetir tarjeta ni familia en la pareja */
-    var ops = P.tarjetas.filter(function (x) { return sorteable(x, slot) && ids.indexOf(x.id) < 0 && x.id !== S.ev[f][slot]; });
+    var ops = escenarios().filter(function (x) { return sorteable(x, slot) && ids.indexOf(x.id) < 0 && x.id !== S.ev[f][slot]; });
     var sf = ops.filter(function (x) { return !(x.familias || []).some(function (y) { return fam.indexOf(y) >= 0; }); });
     if (sf.length) ops = sf;
     if (ops.length) poner(ops[Math.floor(Math.random() * ops.length)].id);
+    else avisoM('No hay otro escenario para sortear', 'Los escenarios activos de ' + SLOT[slot].para + ' ya están usados en esta prueba. Elige uno con «o elegir…» o activa más en Administración.');
   };
   c.querySelector('[data-elige]').onchange = function () { if (this.value) poner(this.value); };
   var mo = c.querySelector('[data-mos]');
@@ -915,7 +1565,7 @@ function registroRetirado(S, k, como, nombre, hora) {
 function textoCambio(S, k, como, nombre) {
   var s = otro(k), ind = individual(S), L = [];
   if (ind && k === 'B') {
-    if (como === 'piloto') L.push('Entra <b>' + esc(nombre) + '</b> como piloto que sí se evalúa: la prueba pasa a <b>modo pareja</b>; vuela segundo y empieza desde cero (preguntas, destreza y tarjetas vacías: las sorteas como en una prueba nueva).',
+    if (como === 'piloto') L.push('Entra <b>' + esc(nombre) + '</b> como piloto que sí se evalúa: la prueba pasa a <b>modo pareja</b>; vuela segundo y empieza desde cero (preguntas y destreza vacías; ' + (nuevoModelo(S) ? 'sus escenarios se sortean de una vez, sin repetir los de la prueba' : 'las tarjetas las sorteas como en una prueba nueva') + ').',
       'Las respuestas y tarjetas de <b>' + esc(S.A) + '</b> se conservan intactas.' + (conjMarcadas(S, 'A') ? ' Las preguntas «juntos» ya marcadas quedan solo para ' + esc(nombre1(S.A)) + '; desde ahora Preparación y Cierre se marcan por separado para cada uno.' : ''));
     else L.push(como === 'acompanante' ? 'El acompañante pasa a ser <b>' + esc(nombre) + '</b> (no se evalúa). Los puntajes no cambian.' : 'La prueba sigue sin acompañante. Los puntajes no cambian.');
     return L;
@@ -924,7 +1574,7 @@ function textoCambio(S, k, como, nombre) {
   L.push(tieneDatos(S.ev[k]) ? 'Sus ' + n + ' respuesta' + (n === 1 ? '' : 's') + ' (y lo demás que tenga anotado) quedan guardadas aparte como <b>registro incompleto (retirado)</b>: no genera informe ni nota, y ' + esc(nombre1(S[k])) + ' vuelve a quedar pendiente para evaluarlo en otra prueba.'
     : 'No tenía nada anotado: no se guarda registro aparte y ' + esc(nombre1(S[k])) + ' sigue pendiente para otra prueba.');
   if (como === 'piloto') {
-    L.push('Entra <b>' + esc(nombre) + '</b> en su lugar (' + (k === 'A' ? 'vuela primero' : 'vuela segundo') + ') y empieza desde cero: preguntas, destreza y tarjetas vacías (las sorteas como en una prueba nueva).');
+    L.push('Entra <b>' + esc(nombre) + '</b> en su lugar (' + (k === 'A' ? 'vuela primero' : 'vuela segundo') + ') y empieza desde cero: preguntas y destreza vacías; ' + (nuevoModelo(S) ? 'sus escenarios se sortean de una vez, sin repetir los de la prueba.' : 'las tarjetas las sorteas como en una prueba nueva.') + '');
     if (ind) L.push('Sigue en modo individual' + (S.B ? ' con el mismo acompañante (' + esc(S.B) + ').' : ', sin acompañante.'));
     else L.push('Las respuestas y tarjetas de <b>' + esc(S[s]) + '</b> se conservan intactas.' + (S.ambos && conjMarcadas(S, s) ? ' Las preguntas «juntos» ya marcadas quedan solo para ' + esc(nombre1(S[s])) + '; desde ahora Preparación y Cierre se marcan por separado para cada uno.' : ''));
   } else {
@@ -1003,7 +1653,7 @@ function cambiarIntegrante(S, tab) {
     $('#m-no').onclick = cerrar;
     $('#m-si').onclick = function () {
       $('#m-si').disabled = true;
-      aplicarCambio(S, k, como, nombre).then(function (R) {
+      aplicarCambio(S, k, como, nombre).then(function (R) { if (!nuevoModelo(S)) return R; return todas().then(function (L) { sortearPrueba(S, L, true); return guardarS(S); }).then(function () { return R; }); }).then(function (R) {
         cerrar(); var c = S.cambios[S.cambios.length - 1];
         AVISO_EV = '<b>Cambio hecho.</b> ' + lineaCambio(c) + '.' + (R ? ' El registro incompleto queda en la lista de pruebas y en el respaldo.' : '');
         evaluar(S, tab); window.scrollTo(0, 0);
@@ -1050,10 +1700,13 @@ function informePiloto(S, k, primero) {
     '<span class="sub">' + (vieja(S) ? r.c + ' sí · ' + r.n + ' no · ' : num(r.obtenidos) + ' de ' + r.posibles + ' puntos · ') + r.na + ' no aplica · nota mínima ' + r.nota + '</span></div>' +
     (!vieja(S) ? '<div class="msg ' + (r.perdidos.length ? 'err' : 'ok') + '">' + esc(perdioTxt(r)) + '</div>' : '') +
     (r.crit.length ? '<div class="msg err">Incumplió ítems críticos: ' + r.crit.map(function (it) { return it.id + ' – ' + esc(it.t); }).join('; ') + '.</div>' : '') +
-    ['tp', 'to'].map(function (slot) { var f = slot === 'tp' ? k : otro(k), t = tarjetaDe(S, f, slot); if (!t) return ''; return '<div class="tarj" style="margin:10px 0"><b>' + (slot === 'tp' ? 'Contingencia en su vuelo (como piloto): ' : 'Contingencia como observador (vuelo de ' + esc(S[f]) + '): ') + esc(t.id) + ' · ' + esc(t.t) + '</b> (se le mostró a ' + esc(quienTarjeta(S, f, t)) + ')<br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '</div>'; }).join('') +
+    (nuevoModelo(S) ? [[k, 'tp'], [otro(k), 'to']].map(function (x) { var a = asigDe(S, x[0], x[1]); if (!a) return ''; return '<div class="tarj" style="margin:10px 0"><b>Escenario como ' + a.rol + ' (' + esc(momTxt(a.momento)) + (a.momento === 'en_vuelo' ? ', vuelo ' + (x[0] === 'A' ? 1 : 2) : '') + '): ' + esc(a.t.id) + ' · ' + esc(a.t.t) + '</b> (se le mostró a ' + esc(nomK(S, a.quien)) + ', ' + a.mostrar + (datoTxt(a.t) ? '; dato sorteado: ' + esc(datoTxt(a.t)) : '') + ')<br><span class="sub">Situación:</span> ' + esc(txtEscT(a.t, 'situacion')) + '<br><span class="sub">Lo correcto:</span> ' + esc(txtEscT(a.t, 'espera')) + '</div>'; }).join('') +
+      ((misionesRes(S) || []).length ? '<div class="tarj" style="margin:10px 0">' + misionesRes(S).map(function (x) { return '<b>' + esc(misionTxt(x)) + '</b><span class="sub no-print"> · se le leyó: «' + esc(x.leer) + '»</span>'; }).join('<br>') + '</div>' : '') :
+    ['tp', 'to'].map(function (slot) { var f = slot === 'tp' ? k : otro(k), t = tarjetaDe(S, f, slot); if (!t) return ''; return '<div class="tarj" style="margin:10px 0"><b>' + (slot === 'tp' ? 'Contingencia en su vuelo (como piloto): ' : 'Contingencia como observador (vuelo de ' + esc(S[f]) + '): ') + esc(t.id) + ' · ' + esc(t.t) + '</b> (se le mostró a ' + esc(quienTarjeta(S, f, t)) + ')<br><span class="sub">Situación:</span> ' + esc(t.situacion) + '<br><span class="sub">Lo correcto:</span> ' + esc(t.espera) + '</div>'; }).join('')) +
     (repEsperado(S, k) ? '<div class="tarj" style="margin:10px 0"><b>Reporte que le corresponde: ' + repTxt(repEsperado(S, k)) + '</b> <span class="sub">(se verifica en el informe del PC)</span></div>' : '') +
-    (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + ' · ' + d.mir + ' miradas' + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.puntos != null ? num(x.puntos) + ' de ' + D.valor + ' puntos' : x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
-      (x.vieja ? d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep && d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b></span>'; }).join('')
+    (function () { var d = e.des, x = destreza(S, k); if (!d) return ''; return '<div class="tarj" style="margin:10px 0;border-color:var(--verde);background:var(--verde-s)"><b>Destreza (vuelo sin pantalla): ' + x.pts + ' de ' + x.max + (desN(d) ? '' : ' · ' + d.mir + ' miradas') + (d.inter ? ' · con intervención de seguridad' : '') + ' – ' + (x.puntos != null ? num(x.puntos) + ' de ' + D.valor + ' puntos' : x.ok ? 'aprobada' : 'no aprobada') + '</b>' +
+      (desN(d) ? '<span class="sub"> · penalizaciones: ' + d.pen.length + (d.pen.length ? ' (' + esc(penTxt(d.pen)) + ')' : '') + '</span>' + d.ord.map(function (o, i) { return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + esc(marcaCmd(d, i)) + '</b></span>'; }).join('') :
+       x.vieja ? d.ord.map(function (o, i) { var p = d.c[i].filter(function (v) { return v === 1; }).length; if (d.rep && d.rep[i]) p = Math.max(0, p - 1); return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + p + '/3</b></span>'; }).join('')
         : d.ord.map(function (o, i) { var n = D.notas.filter(function (z) { return z[1] === d.v[i]; })[0]; return '<span class="ord">' + (i + 1) + '. ' + esc(o) + ' – <b>' + (n ? n[2] + ' (' + n[1] + ')' : 'sin calificar') + '</b></span>'; }).join('')) + '</div>'; })() +
     cambiosHtml(S, false) +
     '<div class="secs">' + lista(S).secciones.map(function (s) {
@@ -1092,7 +1745,8 @@ function exportar(L) {
     var nom = 'pruebas_operacionales_' + hoy() + (L.length === 1 ? '_' + norm(L[0].A + ' ' + L[0].B).replace(/[^a-z0-9]+/g, '_') : '') + '.json';
     /* el resumen por piloto se recalcula al exportar (también para sesiones de EVAL-OP 8 importadas) */
     var ses = L.map(function (S) { return S.estado === 'final' ? Object.assign({}, S, { resumen: resumen(S) }) : S; });
-    compartir(new File([JSON.stringify({ app: 'evop3', esquema: 'evop-resumen-3', version: VERSION, exportado: Date.now(), sesiones: ses, fotos: fotos })], nom, { type: 'application/json' }));
+    /* OP-15: el respaldo lleva también la configuración de administración (sin PIN); importar el respaldo no la aplica: se importa desde Administración */
+    compartir(new File([JSON.stringify({ app: 'evop3', esquema: 'evop-resumen-3', version: VERSION, exportado: Date.now(), sesiones: ses, fotos: fotos, admin: cfgExport() })], nom, { type: 'application/json' }));
   });
 }
 function importar(f) {

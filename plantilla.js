@@ -1,19 +1,29 @@
-/* Prueba operacional de pilotos UAS de EPM – lista OP-13 (nov 2026, escenarios ESC-4). Reloj de 50 min: la explicación y las dudas van antes de «Empezar».
+/* Prueba operacional de pilotos UAS de EPM – lista OP-16 (nov 2026, escenarios ESC-4 con modelo por roles).
+   OP-16: cada escenario dice a quién se le muestra (mostrar_a), quién responde y se evalúa (responde), cuándo (momento: antes_del_vuelo,
+   en_vuelo, cambio_de_bateria), si el ejercicio sigue (continua) y si entra al sorteo. Cada persona responde uno como piloto (pregunta 19,
+   8 puntos) y otro como observador (pregunta 27, 6 puntos). t_op15/corto_op15: textos de esas dos preguntas para las sesiones OP-15.
+   Reloj de 50 min por defecto (Administración: 30–120, minutos_rango; Reloj de 50 min por defecto (Administración: 30–120, minutos_rango;
+   el cronograma se escala en proporción): la explicación y las dudas van antes de «Empezar».
+   OP-15: la pregunta 1 (prenda reflectiva) es «por_piloto»: aunque Preparación sea conjunta, cada piloto se califica por su cuenta (mismos 2 puntos
+   para cada uno). t_op13 es su texto anterior: las sesiones OP-11 a OP-13 la siguen viendo y marcando como antes (conjunta). La lista es la misma de OP-13.
    28 preguntas que suman 100 puntos (p = puntos). Ninguna es crítica: aprueba con puntaje ≥ 90 (nota mínima).
    Puntaje = puntos obtenidos / puntos posibles de las preguntas que aplican × 100, con un decimal.
-   Destreza (10 puntos, proporcional): N maniobras sorteadas (Ajustes, 4–12, por defecto 8), sin regreso ni aterrizaje; 10 × (puntos / 2N) − 1 por cada mirada a la pantalla después de la 2.ª (mínimo 0).
+   Destreza (10 puntos, proporcional): N comandos sorteados (Administración, 4–12, por defecto 8). OP-16: cada comando = girar + mover, sin distancias
+   (horizontal, vertical y maximo_m solo quedan para leer sesiones viejas); puntos del comando = max(0, 2 − correcciones − penalizaciones),
+   destreza = 10 × suma / 2N; segundos = límite del comando completo (Administración, 5–30, por defecto 10). OP-11 a OP-15: −1 por cada mirada después de la 2.ª.
    Trampas (conjuntas): «trampa» = vuelo 1 o 2; su texto (trampas) solo lo ve el evaluador. pasos: orden de cada vuelo.
    secciones_op10/destreza_op10 y secciones_op9/destreza_op9: listas anteriores, solo para leer sesiones y respaldos viejos.
    El bloque entre las marcas «ESCENARIOS» lo genera escenarios_a_plantilla.py: no editarlo a mano. tarjetas_op8: las 20 tarjetas de EVAL-OP 8. */
 window.PLANTILLA = {
-  version: 'OP-13',
+  version: 'OP-16',
   lugar: 'COM San Nicolás',
   minutos: 50,
+  minutos_rango: { minimo: 30, maximo: 120 },
   cronograma: [
     { de: 0, a: 9, t: 'Preparación en sitio y dronpuerto (juntos)' },
-    { de: 9, a: 23, t: 'Vuelo 1: pilota {A}, observa {B}', vuelo: 'A' },
-    { de: 23, a: 25, t: 'Bitácora del vuelo 1 y cambio de roles' },
-    { de: 25, a: 39, t: 'Vuelo 2: pilota {B}, observa {A}', vuelo: 'B' },
+    { de: 9, a: 23, t: 'Vuelo 1: pilota {A}, observa {B} (destreza y misión en el orden sorteado)', vuelo: 'A' },
+    { de: 23, a: 25, t: 'Bitácora del vuelo 1, cambio de batería y de roles' },
+    { de: 25, a: 39, t: 'Vuelo 2: pilota {B}, observa {A} (destreza y misión en el orden sorteado)', vuelo: 'B' },
     { de: 39, a: 47, t: 'Post-vuelo, bitácora y cierre (juntos)' },
     { de: 47, a: 50, t: 'Margen y retroalimentación' }
   ],
@@ -26,9 +36,12 @@ window.PLANTILLA = {
     "items": [
      {
       "id": "1",
-      "t": "¿Los pilotos tienen prendas reflectivas institucionales?",
+      "t": "¿El piloto tiene prenda reflectiva institucional?",
       "p": 2,
-      "corto": "Prendas reflectivas"
+      "corto": "Prenda reflectiva",
+      "por_piloto": true,
+      "t_op13": "¿Los pilotos tienen prendas reflectivas institucionales?",
+      "corto_op13": "Prendas reflectivas"
      },
      {
       "id": "2",
@@ -142,9 +155,11 @@ window.PLANTILLA = {
      },
      {
       "id": "19",
-      "t": "¿Atendió la contingencia con la acción correcta?",
+      "t": "¿Atendió su escenario de emergencia como piloto con la acción correcta?",
       "p": 8,
-      "corto": "Contingencia",
+      "corto": "Escenario como piloto",
+      "t_op15": "¿Atendió la contingencia con la acción correcta?",
+      "corto_op15": "Contingencia",
       "tarjeta": true
      },
      {
@@ -180,17 +195,23 @@ window.PLANTILLA = {
     "items": [
      {
       "id": "24",
-      "t": "¿Advirtieron que la orden excedía la altura autorizada (60 m) y no subieron?",
+      "t": "Misión del vuelo 1: ¿el piloto o el observador detectó que no se podía hacer con la autorización (altura o polígono) y no la ejecutaron?",
       "p": 6,
-      "corto": "Trampa de altura",
-      "trampa": 1
+      "corto": "Misión trampa del vuelo 1",
+      "trampa": 1,
+      "mision": true,
+      "t_op15": "¿Advirtieron que la orden excedía la altura autorizada (60 m) y no subieron?",
+      "corto_op15": "Trampa de altura"
      },
      {
       "id": "25",
-      "t": "¿Advirtieron que la orden los sacaba del polígono autorizado y no salieron?",
+      "t": "Misión del vuelo 2: ¿el piloto o el observador detectó que no se podía hacer con la autorización (altura o polígono) y no la ejecutaron?",
       "p": 6,
-      "corto": "Trampa del polígono",
-      "trampa": 2
+      "corto": "Misión trampa del vuelo 2",
+      "trampa": 2,
+      "mision": true,
+      "t_op15": "¿Advirtieron que la orden los sacaba del polígono autorizado y no salieron?",
+      "corto_op15": "Trampa del polígono"
      }
     ]
    },
@@ -207,9 +228,11 @@ window.PLANTILLA = {
      },
      {
       "id": "27",
-      "t": "¿Avisó a tiempo la amenaza de su tarjeta (aeronaves, personas, fauna u obstáculos)?",
+      "t": "¿Atendió su escenario de emergencia como observador con la acción correcta (aviso a tiempo, control del área o toma del control)?",
       "p": 6,
-      "corto": "Aviso de la amenaza",
+      "corto": "Escenario como observador",
+      "t_op15": "¿Avisó a tiempo la amenaza de su tarjeta (aeronaves, personas, fauna u obstáculos)?",
+      "corto_op15": "Aviso de la amenaza",
       "tarjeta_obs": true
      }
     ]
@@ -265,7 +288,7 @@ window.PLANTILLA = {
      "no llegó, terminó en otro punto, hubo que repetirle la orden o intervenir (si intervienes, márcala así)"
     ]
    ],
-   "segundos": 30,
+   "segundos": 10,
    "miradas": 2,
    "valor": 10,
    "miradas_libres": 2,
@@ -274,6 +297,12 @@ window.PLANTILLA = {
     "minimo": 4,
     "maximo": 12
    }
+  },
+  /* OP-16: la trampa de cada vuelo es una misión imposible con la autorización (hasta 60 m y dentro del polígono). Se sortea una por vuelo, distinta
+     en los dos vuelos de la prueba. Aprueban los dos (pareja) si el piloto o el observador la detecta y no la ejecutan. trampas: las de OP-15 y anteriores. */
+  misiones: {
+   "a": { "t": "Foto ortogonal a 90 m", "leer": "Misión: toma una foto ortogonal del COM San Nicolás a 90 m de altura.", "motivo": "altura", "limite": "La autorización es hasta 60 m: no se puede subir a 90 m.", "detener": "Si empiezan a subir por encima de 60 m, detén el ejercicio de inmediato." },
+   "b": { "t": "Foto de frente a 250 m", "leer": "Misión: toma una foto de frente al COM San Nicolás a 250 m de distancia y 60 m de altura.", "motivo": "polígono", "limite": "A 250 m del COM el dron queda fuera del polígono autorizado.", "detener": "Si empiezan a alejarse hacia el borde del polígono, detén el ejercicio unos 10 m antes del borde." }
   },
   trampas: {
    "1": "Pide: «Sube a 70 m para tomar la foto general». Si empieza a subir, detenlo antes de los 60 m.",
@@ -652,7 +681,7 @@ window.PLANTILLA = {
    "miradas": 2
   },
   /* ESCENARIOS: inicio (generado por escenarios_a_plantilla.py; no editar a mano) */
-  escenarios: {"version": "ESC-4", "total": 32},
+  escenarios: {"version": "ESC-4", "total": 42},
   tarjetas: [
    {
     "id": "E01",
@@ -667,7 +696,15 @@ window.PLANTILLA = {
     "familias": [
      "obstáculo cercano"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E02",
@@ -679,8 +716,18 @@ window.PLANTILLA = {
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
-    "familias": [],
-    "en_sorteo": true
+    "familias": [
+     "batería en vuelo"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E03",
@@ -695,7 +742,15 @@ window.PLANTILLA = {
     "familias": [
      "vibración o daño en vuelo"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E04",
@@ -710,7 +765,15 @@ window.PLANTILLA = {
     "familias": [
      "enlace, imagen o pantalla"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E05",
@@ -725,7 +788,15 @@ window.PLANTILLA = {
     "familias": [
      "enlace, imagen o pantalla"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E08",
@@ -737,8 +808,18 @@ window.PLANTILLA = {
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "alto: aterrizaje y además recoger, evacuar, secar o dejar el dron o la batería fuera de servicio",
-    "familias": [],
-    "en_sorteo": true
+    "familias": [
+     "clima adverso"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "cualquiera",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E09",
@@ -753,14 +834,22 @@ window.PLANTILLA = {
     "familias": [
      "enlace, imagen o pantalla"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E10",
     "t": "Aeronave tripulada",
     "para": "observador",
-    "situacion": "Ves un helicóptero a baja altura que se acerca por tu derecha.",
-    "espera": "El observador avisa de inmediato y con claridad. El piloto cede el paso: desciende y aleja el dron de la trayectoria, aterriza si hace falta y espera a que salga del área.",
+    "situacion": "Ves un helicóptero a baja altura que se acerca por el {PUNTO}, {ALTURA}.",
+    "espera": "El observador avisa de inmediato y con claridad, con la referencia acordada («helicóptero por el {PUNTO}, {ALTURA}»), y mantiene a la vista la aeronave y el dron. El piloto confirma, mantiene el control del dron sin maniobras bruscas y siguen las indicaciones del observador hasta que la aeronave salga del área; lo anotan en la bitácora. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
     "reporte": "VOR (la cuasi colisión se registra en los indicadores SPI); MOR solo si hay contacto (colisión)",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -768,14 +857,24 @@ window.PLANTILLA = {
     "familias": [
      "aeronave tripulada"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta",
+    "direccion": true,
+    "nota_evaluador": "El helicóptero es imaginario. Se evalúa la comunicación del observador; no se califica ninguna maniobra evasiva del piloto."
    },
    {
     "id": "E11",
     "t": "Otro dron cerca",
     "para": "observador",
-    "situacion": "Ves otro dron, que no es de la operación, volando cerca del de ustedes.",
-    "espera": "El observador avisa de inmediato. El piloto se separa (cambia de altura o se aleja) y aterriza si el otro dron sigue cerca.",
+    "situacion": "Ves otro dron, que no es de la operación, volando cerca del de ustedes por el {PUNTO}, {ALTURA}: díselo al piloto.",
+    "espera": "El observador avisa de inmediato con la referencia cardinal acordada (p. ej. «otro dron por el {PUNTO}, {ALTURA}»). El piloto se separa hacia el lado contrario y aterriza si el otro dron sigue cerca. Criterios de comunicación del observador: 1) avisa de inmediato indicando dirección y altura con la referencia cardinal acordada; 2) si el piloto no le entiende, reformula con claridad (otra referencia, p. ej. «a tu derecha», o le dice hacia dónde mover el dron) hasta confirmar que entendió; 3) si el piloto mueve el dron hacia el lado equivocado, lo corrige de inmediato y con claridad.",
     "reporte": "VOR (si el otro dron solo está cerca); MOR si hay cuasi colisión con el otro dron o contacto",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -783,27 +882,48 @@ window.PLANTILLA = {
     "familias": [
      "otro dron"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta",
+    "direccion": true,
+    "nota_evaluador": "Si el piloto no reacciona o se mueve hacia el otro dron, observa cómo lo corrige el observador."
    },
    {
     "id": "E12",
     "t": "Persona en el área de aterrizaje",
     "para": "observador",
-    "situacion": "Una persona está entrando al área de seguridad del dronpuerto mientras el dron desciende.",
-    "espera": "El observador avisa y controla el área. El piloto detiene el descenso en estacionario a una altura segura y espera a que se despeje, o aterriza en una zona alterna segura.",
-    "reporte": "VOR",
-    "reporte_esperado": "VOR",
+    "situacion": "Una persona está entrando al área de seguridad del dronpuerto por el {PUNTO} mientras el dron desciende.",
+    "espera": "El observador avisa con la referencia acordada («persona entrando por el {PUNTO}») y controla el área. El piloto confirma, detiene el descenso en estacionario a una altura segura y espera a que se despeje, o aterriza en una zona alterna segura. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
+    "reporte": "MOR (coordinación deficiente: terceros en el área durante la operación) y VOR",
+    "reporte_esperado": "MOR+VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
-    "familias": [],
-    "en_sorteo": true
+    "familias": [
+     "terceros en el área"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta",
+    "direccion": true
    },
    {
     "id": "E13",
     "t": "El observador pierde el dron de vista",
     "para": "observador",
     "situacion": "Perdiste de vista el dron detrás de los árboles.",
-    "espera": "El observador lo dice de inmediato. El piloto detiene el avance y regresa el dron a donde el observador lo vea; si no lo recupera, cancela y aterriza.",
+    "espera": "El observador lo dice de inmediato. El piloto detiene el avance, le dice dónde está el dron con la referencia acordada (punto cardinal y altura, con el mapa y la telemetría) y lo regresa a donde el observador lo vea; el observador confirma en voz alta cuando lo recupera. Si no lo recupera, cancelan y aterrizan. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
     "reporte": "VOR",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -811,14 +931,22 @@ window.PLANTILLA = {
     "familias": [
      "pérdida de vista del dron"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E14",
     "t": "Cable no previsto",
     "para": "observador",
-    "situacion": "El dron se está acercando a un cable que no estaba en la planeación.",
-    "espera": "El observador avisa y da la dirección del cable. El piloto detiene el avance, se separa del cable ganando altura o distancia y replantea la ruta.",
+    "situacion": "Imagina que el dron se está acercando a un cable que no estaba en la planeación, por el {PUNTO}, {ALTURA}.",
+    "espera": "El observador avisa con la referencia acordada («cable por el {PUNTO}, {ALTURA}») y le indica hacia dónde separarse. El piloto confirma, detiene el avance, se separa del cable hacia el lado contrario y replantea la ruta. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
     "reporte": "VOR (peligro no identificado); MOR si hay contacto (colisión); si hay daños, se activa el Plan de Respuesta a Emergencias UAS y la notificación de incidente grave",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -826,7 +954,17 @@ window.PLANTILLA = {
     "familias": [
      "obstáculo cercano"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta",
+    "direccion": true,
+    "nota_evaluador": "El cable es imaginario: descríbeselo al observador. Si el piloto se mueve hacia el cable, observa cómo lo corrige el observador."
    },
    {
     "id": "E15",
@@ -834,17 +972,27 @@ window.PLANTILLA = {
     "para": "observador",
     "situacion": "Varias personas se acercan al puesto del piloto y empiezan a hacerle preguntas.",
     "espera": "El observador las aleja con cortesía y protege la concentración del piloto. El piloto pone el dron en estacionario seguro y no responde mientras vuela.",
-    "reporte": "No requiere",
-    "reporte_esperado": "VOR",
+    "reporte": "MOR (coordinación deficiente: terceros en el área durante la operación) y VOR",
+    "reporte_esperado": "MOR+VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
-    "familias": [],
-    "en_sorteo": true
+    "familias": [
+     "terceros en el área"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E16",
     "t": "El observador se siente mal",
-    "para": "observador",
+    "para": "piloto",
     "situacion": "Te sientes mareado y tienes que sentarte: díselo al piloto.",
     "espera": "El observador lo comunica de inmediato. El piloto aterriza sin demora (no se vuela sin observador) y atiende al compañero; si es grave, avisa al Jefe de Pilotos, que se encarga de las demás comunicaciones.",
     "reporte": "No requiere (emergencia médica: plan de emergencias)",
@@ -854,7 +1002,15 @@ window.PLANTILLA = {
     "familias": [
      "tripulante indispuesto"
     ],
-    "en_sorteo": false
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "juan"
    },
    {
     "id": "E18",
@@ -866,15 +1022,25 @@ window.PLANTILLA = {
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
-    "familias": [],
-    "en_sorteo": true
+    "familias": [
+     "batería en vuelo"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E19",
     "t": "Fauna sobre el dron",
     "para": "observador",
-    "situacion": "Un gallinazo (o una bandada de aves) se está acercando al dron.",
-    "espera": "El observador avisa de inmediato y le indica al piloto por dónde viene. El piloto gana distancia, no persigue ni encierra al ave y, si persiste, aterriza.",
+    "situacion": "Dos gallinazos se acercan al dron por el {PUNTO}, {ALTURA}: díselo al piloto.",
+    "espera": "El observador avisa de inmediato con la referencia cardinal acordada (p. ej. «gallinazos por el {PUNTO}, {ALTURA}»). El piloto gana distancia hacia el lado contrario, no persigue ni encierra a las aves y, si persisten, aterriza. Criterios de comunicación del observador: 1) avisa de inmediato indicando dirección y altura con la referencia cardinal acordada; 2) si el piloto no le entiende, reformula con claridad (otra referencia, p. ej. «a tu derecha», o le dice hacia dónde mover el dron) hasta confirmar que entendió; 3) si el piloto mueve el dron hacia el lado equivocado, lo corrige de inmediato y con claridad.",
     "reporte": "VOR; si hay impacto: MOR y notificación de accidente o incidente grave (colisión con fauna)",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -882,7 +1048,17 @@ window.PLANTILLA = {
     "familias": [
      "aves"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta",
+    "direccion": true,
+    "nota_evaluador": "Si el piloto no reacciona o se mueve hacia el lado de las aves, observa cómo lo corrige el observador."
    },
    {
     "id": "E20",
@@ -897,7 +1073,15 @@ window.PLANTILLA = {
     "familias": [
      "batería en tierra"
     ],
-    "en_sorteo": false
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "juan"
    },
    {
     "id": "E21",
@@ -910,7 +1094,15 @@ window.PLANTILLA = {
     "clase": "ejecutable en vuelo",
     "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
     "familias": [],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E22",
@@ -925,7 +1117,15 @@ window.PLANTILLA = {
     "familias": [
      "enlace, imagen o pantalla"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E23",
@@ -938,9 +1138,18 @@ window.PLANTILLA = {
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
     "familias": [
-     "vibración o daño en vuelo"
+     "vibración o daño en vuelo",
+     "daño en el fuselaje"
     ],
-    "en_sorteo": false
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E24",
@@ -952,34 +1161,65 @@ window.PLANTILLA = {
     "reporte_esperado": "VOR",
     "clase": "ejecutable en tierra",
     "tiempo": "no aplica: no es tarjeta de vuelo",
-    "familias": [],
-    "en_sorteo": false
+    "familias": [
+     "daño en el fuselaje"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "cualquiera",
+    "responde": "quien_lo_ve",
+    "momento": [
+     "cambio_de_bateria",
+     "antes_del_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "juan"
    },
    {
     "id": "E25",
     "t": "Alteración del orden público",
-    "para": "observador",
+    "para": "piloto",
     "situacion": "Un grupo de personas se está acercando molesto al puesto y exige que bajen el dron.",
     "espera": "El observador avisa al piloto. El piloto aterriza de forma segura lo antes posible; no confrontan ni discuten, recogen el equipo y se retiran a un lugar seguro. Avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones, y no vuelven hasta que haya condiciones.",
     "reporte": "VOR (amenaza a la seguridad de la operación)",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "alto: aterrizaje y además recoger, evacuar, secar o dejar el dron o la batería fuera de servicio",
-    "familias": [],
-    "en_sorteo": false
+    "familias": [
+     "seguridad física"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "juan"
    },
    {
     "id": "E26",
     "t": "Amenaza a la seguridad personal",
-    "para": "observador",
+    "para": "piloto",
     "situacion": "Una persona armada se acerca y exige que le entreguen el dron.",
     "espera": "La prioridad es la vida: no oponen resistencia. El piloto aterriza y entregan lo que exijan sin discutir; se ponen a salvo y después avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones.",
     "reporte": "VOR y denuncia ante las autoridades; reporte de pérdida del equipo",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "alto: aterrizaje y además recoger, evacuar, secar o dejar el dron o la batería fuera de servicio",
-    "familias": [],
-    "en_sorteo": false
+    "familias": [
+     "seguridad física"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "juan"
    },
    {
     "id": "E27",
@@ -994,38 +1234,65 @@ window.PLANTILLA = {
     "familias": [
      "batería en tierra"
     ],
-    "en_sorteo": false
+    "en_sorteo": true,
+    "mostrar_a": "cualquiera",
+    "responde": "quien_lo_ve",
+    "momento": [
+     "cambio_de_bateria",
+     "antes_del_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "juan"
    },
    {
     "id": "E28",
     "t": "Pérdida de GNSS",
     "para": "piloto",
     "situacion": "La aplicación indica pérdida de GNSS: el dron pasó a modo de actitud (ATTI) y empieza a derivar con el viento.",
-    "espera": "Toma el control manual de inmediato, corrige la deriva con los mandos, aleja el dron de obstáculos y personas, se apoya en el observador y aterriza en la zona segura más cercana. No espera a que el dron se estabilice solo.",
+    "espera": "Anuncia en voz alta «Tomando control manual», corrige la deriva con los mandos, aleja el dron de obstáculos y personas y aterriza en la zona segura más cercana. Le pide al observador que le indique la deriva y la distancia a los obstáculos con la referencia acordada y confirma cada indicación. No espera a que el dron se estabilice solo.",
     "reporte": "MOR (pérdida de GNSS en vuelo)",
     "reporte_esperado": "MOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
     "familias": [],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E30",
     "t": "Fauna que ataca al piloto (amenaza biológica)",
     "para": "observador",
     "situacion": "Un enjambre de abejas, un perro agresivo o una serpiente está cerca del piloto mientras vuela.",
-    "espera": "El observador avisa de inmediato. El piloto deja el dron en estacionario en un sitio seguro, se protege y, en cuanto pueda, aterriza. Si hay una picadura o lesión, primeros auxilios; si hay reacción alérgica o lesión grave, activan el Plan de Respuesta a Emergencias UAS y avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones.",
+    "espera": "El observador avisa de inmediato al piloto con la referencia acordada. El piloto deja el dron en estacionario seguro y entrega el control en voz alta; el observador (piloto certificado) toma el control, lo confirma en voz alta («Tengo el control») y aterriza de forma segura. Luego atienden al compañero (primeros auxilios; si hay reacción alérgica o lesión grave, Plan de Respuesta a Emergencias UAS) y avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones.",
     "reporte": "VOR; si hay lesión grave: notificación de accidente o incidente grave",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
-    "familias": [],
-    "en_sorteo": false
+    "familias": [
+     "piloto incapacitado"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "juan"
    },
    {
     "id": "E36",
     "t": "Fuego en una batería",
-    "para": "observador",
+    "para": "piloto",
     "situacion": "La batería que estaba cargando o en reposo empezó a soltar chispas y una llama pequeña.",
     "espera": "Si el fuego es incipiente, usa el extintor multipropósito F-500 (agente encapsulador). Nunca usa agua directamente sobre la batería en llamas. Se alejan, esperan a que se disipen los gases antes de acercarse y, si no se controla de inmediato, llaman a los bomberos (Manual del Sistema de Gestión de la Seguridad Operacional).",
     "reporte": "VOR; registro en el libro de mantenimiento y en la bitácora; informe al Gerente SMS y al Responsable de Mantenimiento",
@@ -1035,7 +1302,16 @@ window.PLANTILLA = {
     "familias": [
      "batería en tierra"
     ],
-    "en_sorteo": false
+    "en_sorteo": false,
+    "mostrar_a": "cualquiera",
+    "responde": "quien_lo_ve",
+    "momento": [
+     "cambio_de_bateria",
+     "antes_del_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E37",
@@ -1050,7 +1326,15 @@ window.PLANTILLA = {
     "familias": [
      "batería en tierra"
     ],
-    "en_sorteo": false
+    "en_sorteo": true,
+    "mostrar_a": "cualquiera",
+    "responde": "quien_lo_ve",
+    "momento": [
+     "cambio_de_bateria"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "marca": "propuesta"
    },
    {
     "id": "E38",
@@ -1065,42 +1349,69 @@ window.PLANTILLA = {
     "familias": [
      "tripulante indispuesto"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E39",
     "t": "Incendio cerca de la zona",
-    "para": "observador",
+    "para": "piloto",
     "situacion": "Ves una columna de humo de un incendio de vegetación que avanza hacia la zona de vuelo.",
     "espera": "El observador avisa. El piloto aterriza, recogen el equipo y evacúan por la ruta definida en el briefing; avisan a emergencias si nadie lo ha hecho y avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones. No usan el dron para ver el incendio sin autorización.",
     "reporte": "VOR",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "alto: aterrizaje y además recoger, evacuar, secar o dejar el dron o la batería fuera de servicio",
-    "familias": [],
-    "en_sorteo": false
+    "familias": [
+     "evacuación"
+    ],
+    "en_sorteo": true,
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E40",
     "t": "El observador toma el control",
-    "para": "piloto",
+    "para": "observador",
     "situacion": "Te sientes muy mareado (o te picó una abeja en la mano) y no puedes seguir volando.",
-    "espera": "El piloto deja el dron en estacionario en una posición segura y avisa en voz alta que entrega el control. El observador (que es piloto certificado) toma el control, lo confirma en voz alta y aterriza de forma segura; luego atienden al compañero y avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones. Nadie queda volando sin observador: después del aterrizaje se suspende la operación.",
+    "espera": "El piloto deja el dron en estacionario en una posición segura y dice en voz alta que entrega el control. El observador (que es piloto certificado) toma el control, lo confirma en voz alta («Tengo el control») y el piloto lo suelta solo después de oír la confirmación. El observador aterriza de forma segura; luego atienden al compañero y avisan al Jefe de Pilotos, que se encarga de las demás comunicaciones. Nadie queda volando sin observador: después del aterrizaje se suspende la operación.",
     "reporte": "VOR; notificación si hay lesión grave",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
     "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
     "familias": [
+     "piloto incapacitado",
      "tripulante indispuesto"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
    },
    {
     "id": "E42",
     "t": "Solo visual",
     "para": "piloto",
     "situacion": "La pantalla del control se apagó: no tienes imagen ni telemetría, pero los mandos siguen respondiendo.",
-    "espera": "Avisa al observador y vuela mirando el dron: lo trae de regreso con movimientos cortos y controlados, apoyándose en el observador para la distancia y la orientación, y aterriza en el dronpuerto. No intenta reiniciar la pantalla mientras vuela.",
+    "espera": "Avisa al observador y vuela mirando el dron: lo trae de regreso con movimientos cortos y controlados. Le pide al observador que lo guíe en distancia y orientación con la referencia acordada y repite cada indicación antes de mover. Aterriza en el dronpuerto. No intenta reiniciar la pantalla mientras vuela.",
     "reporte": "VOR (MOR si se pierde el control)",
     "reporte_esperado": "VOR",
     "clase": "ejecutable en vuelo",
@@ -1108,7 +1419,273 @@ window.PLANTILLA = {
     "familias": [
      "enlace, imagen o pantalla"
     ],
-    "en_sorteo": true
+    "en_sorteo": true,
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "marca": "propuesta"
+   },
+   {
+    "id": "E49",
+    "t": "Tormenta eléctrica cerca",
+    "para": "piloto",
+    "situacion": "Escuchas un trueno y ves relámpagos hacia el oriente: díselo al piloto.",
+    "espera": "El observador avisa de inmediato y el piloto confirma. El piloto suspende la misión, regresa por la ruta más corta y segura y aterriza. Apagan y recogen el equipo y se resguardan lejos de torres y estructuras altas. No vuelven a volar hasta que pase la tormenta y lo anotan en la bitácora. Comunicación: avisa de inmediato con la referencia acordada; el que recibe repite o confirma (comunicación cerrada); si no le entienden, reformula hasta confirmar; si el otro se mueve hacia el lado equivocado, lo corrige de inmediato.",
+    "reporte": "VOR (condición meteorológica adversa)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
+    "familias": [
+     "clima adverso"
+    ],
+    "mostrar_a": "observador",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Cartilla UAS, 4.6.2 (condiciones climáticas adversas: aterrizaje); Manual de Operaciones, 4.6.2"
+   },
+   {
+    "id": "E51",
+    "t": "Batería baja en el control remoto",
+    "para": "piloto",
+    "situacion": "El control remoto muestra 15 % de batería y baja rápido: si se apaga, pierdes el enlace con el dron.",
+    "espera": "Avisa al observador (que confirma), deja la tarea, regresa y aterriza de inmediato, antes de que el control se apague. No cambia la batería del control con el dron en el aire. Lo anota en la bitácora.",
+    "reporte": "VOR (MOR si se pierde el enlace)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
+    "familias": [
+     "batería del control"
+    ],
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Cartilla UAS, 4.6.3 (falla del control remoto: causa batería); Manual de Operaciones, emergencias"
+   },
+   {
+    "id": "E55",
+    "t": "Batería muy caliente al retirarla",
+    "para": "piloto",
+    "situacion": "Al sacar la batería del vuelo 1 notas que está muy caliente al tacto y empieza a deformarse.",
+    "espera": "No la carga ni la vuelve a usar caliente. La deja enfriar a la sombra, en un sitio ventilado, sobre una superficie no inflamable y lejos de materiales inflamables, y usa otra batería para el vuelo siguiente. Si se infla, huele o sigue calentándose, la pone en la bolsa ignífuga y avisa al Responsable de Mantenimiento.",
+    "reporte": "VOR; registro en el libro de mantenimiento si queda fuera de servicio",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en tierra",
+    "tiempo": "no aplica: no es tarjeta de vuelo",
+    "familias": [
+     "batería en tierra"
+    ],
+    "mostrar_a": "cualquiera",
+    "responde": "quien_lo_ve",
+    "momento": [
+     "cambio_de_bateria"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Plan de Respuesta a Emergencias UAS (baterías de litio); Manual de Control de Mantenimiento (baterías)"
+   },
+   {
+    "id": "E59",
+    "t": "Cortada en la mano durante el alistamiento",
+    "para": "observador",
+    "situacion": "Te cortaste la mano con el borde de una hélice y estás sangrando bastante: díselo a tu compañero.",
+    "espera": "El compañero detiene el alistamiento y se asegura de que el dron esté apagado. Presta primeros auxilios con el botiquín: presión sobre la herida, limpieza y vendaje. Si la lesión es grave, activa el Plan de Respuesta a Emergencias UAS y avisa al Jefe de Pilotos. Solo siguen si el lesionado queda apto para volar.",
+    "reporte": "VOR; notificación si hay lesión grave",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en tierra",
+    "tiempo": "no aplica: no es tarjeta de vuelo",
+    "familias": [
+     "lesión en tierra"
+    ],
+    "mostrar_a": "piloto",
+    "responde": "observador",
+    "momento": [
+     "cambio_de_bateria",
+     "antes_del_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Plan de Respuesta a Emergencias UAS, 2.2 (lesión a personas) y 2.1 (activación); Cartilla UAS (botiquín en el área de operación)"
+   },
+   {
+    "id": "E60",
+    "t": "Viento fuerte en altura",
+    "para": "piloto",
+    "situacion": "La aplicación avisa de viento fuerte en altura: el dron casi no avanza al regresar y la batería baja rápido.",
+    "espera": "Si es seguro, baja a una altura con menos viento. Regresa por la ruta más corta, cuida que le quede batería para aterrizar con al menos 20 % y suspende la misión. Si tiene que aterrizar fuera del punto previsto, sin daños, lo anota en la bitácora y hace el VOR.",
+    "reporte": "VOR; si aterriza fuera del punto por viento sin daños: bitácora y VOR",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
+    "familias": [
+     "viento"
+    ],
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Cartilla UAS, 4.6.2 (viento mayor que el límite: aterrice); regla de Juan R6 (aterrizaje fuera del punto por viento)"
+   },
+   {
+    "id": "E61",
+    "t": "Personas debajo de la ruta del dron",
+    "para": "observador",
+    "situacion": "Un grupo de trabajadores sale a caminar por el {PUNTO}, justo por debajo de donde está el dron.",
+    "espera": "El observador avisa de inmediato y dice dónde están («personas por el {PUNTO}, debajo del dron»). El piloto confirma y mueve el dron para no quedar encima de ellas, hacia el lado contrario, y espera en estacionario seguro. Siguen cuando se hayan alejado. Personas primero. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
+    "reporte": "MOR (coordinación deficiente: terceros en el área durante la operación) y VOR",
+    "reporte_esperado": "MOR+VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
+    "familias": [
+     "terceros en el área"
+    ],
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "direccion": true,
+    "nuevo": true,
+    "fuente": "Cartilla UAS (proteja en este orden: personas, fauna, infraestructura, UAS) y sección 5, evento 11; decisión de Juan del 19-nov"
+   },
+   {
+    "id": "E62",
+    "t": "Pierde la orientación del dron",
+    "para": "piloto",
+    "situacion": "Ya no sabes hacia dónde apunta la nariz del dron y, al mover los mandos, se aleja hacia los árboles.",
+    "espera": "Deja el dron en estacionario de inmediato y se lo dice al observador, que le confirma dónde está el dron y hacia dónde apunta con la referencia acordada. Se reorienta con el indicador de rumbo del mapa o con la cámara, o con un movimiento corto y suave mirando cómo responde, y el observador le confirma si va bien. Si no se recupera, aterriza en la zona segura más cercana. Comunicación: avisa de inmediato con la referencia acordada; el que recibe repite o confirma (comunicación cerrada); si no le entienden, reformula hasta confirmar; si el otro se mueve hacia el lado equivocado, lo corrige de inmediato.",
+    "reporte": "VOR (MOR si se pierde el control)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
+    "familias": [
+     "orientación"
+    ],
+    "mostrar_a": "piloto",
+    "responde": "piloto",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "nuevo": true,
+    "fuente": "Cartilla UAS, 4.6.6 (orientación: brújula externa y cámara)"
+   },
+   {
+    "id": "E63",
+    "t": "Cometa cerca de la zona de vuelo",
+    "para": "observador",
+    "situacion": "El viento acerca al dron una cometa que elevan unos niños, por el {PUNTO} de la zona de vuelo, {ALTURA}: díselo al piloto.",
+    "espera": "El observador avisa con la referencia cardinal acordada y dice dónde está la cometa y a qué altura respecto al dron. El piloto se mantiene lejos de la cometa y de su cuerda y cambia la ruta; si la cometa sigue acercándose, aterriza. Lo anota en la bitácora. Criterios de comunicación del observador: 1) avisa de inmediato indicando dirección y altura con la referencia cardinal acordada; 2) si el piloto no le entiende, reformula con claridad (otra referencia, p. ej. «a tu derecha», o le dice hacia dónde mover el dron) hasta confirmar que entendió; 3) si el piloto mueve el dron hacia el lado equivocado, lo corrige de inmediato y con claridad.",
+    "reporte": "VOR (peligro en vuelo: bitácora y VOR; contacto en vuelo: bitácora y VOR, y notificación si hay daños)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
+    "familias": [
+     "obstáculo cercano"
+    ],
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "direccion": true,
+    "nota_evaluador": "Si el piloto no reacciona o se mueve hacia la cometa, observa cómo lo corrige el observador.",
+    "nuevo": true,
+    "fuente": "Regla de Juan R2 (contacto en vuelo con obstáculo: bitácora + VOR); Cartilla UAS, 4.7 C"
+   },
+   {
+    "id": "E68",
+    "t": "El piloto se mueve hacia el obstáculo",
+    "para": "observador",
+    "situacion": "Imagina una estructura por el {PUNTO} del dron, {ALTURA}, a {DIST}, y el dron va hacia ella: avísale al piloto.",
+    "espera": "El observador avisa con la referencia acordada. Si el piloto se mueve hacia la estructura, lo detiene de inmediato («¡Alto!») y le corrige con claridad hacia dónde ir; confirma que el piloto entendió (comunicación cerrada) antes de que siga. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
+    "reporte": "VOR (peligro no identificado)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "bajo: se resuelve en el aire y el vuelo sigue",
+    "familias": [
+     "obstáculo cercano"
+    ],
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": true,
+    "requiere_aterrizar": false,
+    "en_sorteo": true,
+    "marca": "juan",
+    "direccion": true,
+    "nota_evaluador": "La estructura es imaginaria. Pídele en voz baja al piloto, antes de mostrar la tarjeta, que cuando reciba el aviso haga un movimiento corto hacia el lado equivocado. Evalúas cómo lo corrige el observador.",
+    "nuevo": true,
+    "fuente": "Manual de Operaciones, funciones del observador; regla de Juan R2"
+   },
+   {
+    "id": "E69",
+    "t": "El observador guía el aterrizaje junto a una antena",
+    "para": "observador",
+    "situacion": "Imagina que, mientras el dron baja al dronpuerto, va a quedar a {DIST} de una antena por el {PUNTO}: guía al piloto.",
+    "espera": "El observador le avisa al piloto con la referencia acordada y lo guía con indicaciones cortas («alto», «hacia el ...», «baja») hasta un descenso vertical seguro sobre el landing pad. El piloto repite cada indicación. Si el dron se va hacia la antena, el observador lo detiene y corrige de inmediato. Comunicación: avisa de inmediato con la referencia acordada (punto cardinal y altura); si el otro no le entiende, reformula (otra referencia, p. ej. «a tu derecha», o hacia dónde mover el dron) hasta confirmar; usa comunicación cerrada (el que recibe repite o confirma); si el otro se mueve hacia el lado equivocado, lo corrige de inmediato y con claridad.",
+    "reporte": "VOR (peligro); con contacto en el aterrizaje: MOR (colisión con obstáculo durante el aterrizaje)",
+    "reporte_esperado": "VOR",
+    "clase": "ejecutable en vuelo",
+    "tiempo": "medio: termina en aterrizaje; si no es la última tarjeta del vuelo obliga a despegar otra vez",
+    "familias": [
+     "guía de aterrizaje"
+    ],
+    "mostrar_a": "observador",
+    "responde": "observador",
+    "momento": [
+     "en_vuelo"
+    ],
+    "continua": false,
+    "requiere_aterrizar": true,
+    "en_sorteo": true,
+    "marca": "juan",
+    "direccion": true,
+    "nota_evaluador": "La antena es imaginaria: descríbesela al observador. Si el piloto se mueve hacia ella, observa cómo lo corrige el observador.",
+    "nuevo": true,
+    "fuente": "Cartilla UAS sección 5, evento 1 (colisión durante el aterrizaje); regla de Juan R4"
    }
   ],
   /* ESCENARIOS: fin */
